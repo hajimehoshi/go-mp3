@@ -15,8 +15,17 @@
 package mp3
 
 import (
+	"fmt"
 	"io"
 )
+
+type unexpectedEOF struct {
+	At string
+}
+
+func (u *unexpectedEOF) Error() string {
+	return fmt.Sprintf("mp3: unexpected EOF at %s", u.At)
+}
 
 func (f *frame) decodeL3() []uint8 {
 	out := make([]uint8, 576*4*2)
@@ -179,6 +188,10 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 			f, err = s.readNextFrame(f)
 			if err != nil {
 				if err == io.EOF {
+					break
+				}
+				if _, ok := err.(*unexpectedEOF); ok {
+					// TODO: Log here?
 					break
 				}
 				return nil, err

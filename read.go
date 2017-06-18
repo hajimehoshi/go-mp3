@@ -30,7 +30,7 @@ func (s *source) readCRC() error {
 	}
 	if err == io.EOF {
 		if n < 2 {
-			return fmt.Errorf("mp3: unexpected EOF at readCRC")
+			return &unexpectedEOF{"readCRC"}
 		}
 		return nil
 	}
@@ -116,7 +116,7 @@ func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 				// Expected EOF
 				return nil, io.EOF
 			}
-			return nil, fmt.Errorf("mp3: unexpected EOF at readHeader")
+			return nil, &unexpectedEOF{"readHeader (1)"}
 		}
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 		b, err := s.getByte()
 		if err != nil {
 			if err == io.EOF {
-				return nil, fmt.Errorf("mp3: unexpected EOF at readHeader")
+				return nil, &unexpectedEOF{"readHeader (2)"}
 			}
 			return nil, err
 		}

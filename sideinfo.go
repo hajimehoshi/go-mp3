@@ -116,7 +116,7 @@ func (src *source) getSideinfo(size int) (*sideInfoBytes, error) {
 	}
 	if n < size {
 		if err == io.EOF {
-			return nil, fmt.Errorf("mp3: unexpected EOF at getSideinfo")
+			return nil, &unexpectedEOF{"getSideinfo"}
 		}
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
 			size, src.getFilepos(), err)

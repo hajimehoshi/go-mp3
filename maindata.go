@@ -168,7 +168,7 @@ func (s *source) getMainData(prev *mainDataBytes, size int, offset int) (*mainDa
 		}
 		if n < size {
 			if err == io.EOF {
-				return nil, fmt.Errorf("mp3: unexpected EOF at getMainData")
+				return nil, &unexpectedEOF{"getMainData (1)"}
 			}
 			return nil, err
 		}
@@ -195,7 +195,7 @@ func (s *source) getMainData(prev *mainDataBytes, size int, offset int) (*mainDa
 	}
 	if n < size {
 		if err == io.EOF {
-			return nil, fmt.Errorf("mp3: unexpected EOF at getMainData")
+			return nil, &unexpectedEOF{"getMainData (2)"}
 		}
 		return nil, err
 	}
