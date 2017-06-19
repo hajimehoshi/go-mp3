@@ -71,15 +71,14 @@ func (s *source) readNextFrame(prev *frame) (*frame, error) {
 		return nil, err
 	}
 	nf := &frame{
-		prev:          prev,
 		header:        h,
 		sideInfo:      si,
 		mainData:      md,
 		mainDataBytes: mdb,
 	}
-	if nf.prev != nil {
-		nf.store = nf.prev.store
-		nf.v_vec = nf.prev.v_vec
+	if prev != nil {
+		nf.store = prev.store
+		nf.v_vec = prev.v_vec
 	}
 	return nf, nil
 }
