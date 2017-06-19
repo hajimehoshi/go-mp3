@@ -40,7 +40,7 @@ func run() error {
 		return err
 	}
 	defer p.Close()
-	if _, err := io.Copy(p, d); err != nil && err != io.EOF {
+	if _, err := io.Copy(p, d); err != nil {
 		return err
 	}
 	return nil
