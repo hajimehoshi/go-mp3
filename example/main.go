@@ -34,10 +34,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	defer d.Close()
 	p, err := oto.NewPlayer(d.SampleRate(), 2, 2, 65536)
 	if err != nil {
 		return err
 	}
+	defer p.Close()
 	if _, err := io.Copy(p, d); err != nil && err != io.EOF {
 		return err
 	}
