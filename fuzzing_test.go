@@ -43,6 +43,38 @@ func TestFuzzingIssue3(t *testing.T) {
 			"\xff\xff00\xff\xee\u007f\xff0000\u007f00\xff00\xee0" +
 			"000\xff000\xff\xff\xee\u007f0\xff0000\u007f\xff0" +
 			"00\xff0",
+		"\xff\xfb\x100004000094\xff000000" +
+			"00000000000000000000" +
+			"00\u007f0\xff\xee\u007f\xff\xee\u007f\xff\xff\u007f\xff\xff\xee\u007f\xff\xff\u007f" +
+			"\xff\xff\u007f0\xff\xee\u007f\xff0000\u007f00\xff\xff\xee\xee0" +
+			"0\xee\u007f\xff000\xff\xff\xee\u007f0\xff0000\u007f\xff0" +
+			"0\xff\xff0",
+		"\xff\xfa\x1000000000000000000" +
+			"00000000000000000000" +
+			"000000000000000000\xff\xff" +
+			"0\u007f\xff\xff\u007f\xff\xff\u007f\xff\xff\xfc0\xff\xef\xbf0\xef\xbf00" +
+			"0\xff\xee\u007f\xff\xff\u007f\xff\xff\xee\u007f\xff\xff\u007f\xff\xff\u007f\xff00" +
+			"\xff\xff00",
+		"\xff\xfa00000031000000000n" +
+			"s0f00000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000\u007f\xff\xff000\xff\xee",
+		"\xff\xfa\x1000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000\xbf0\xef\xbf00" +
+			"0\xff\xee0\xff\xff\u007f\xff\xff\xee\u007f\xff\xff\u007f\xff\xff\u007f\xff00" +
+			"\xff0\xee0",
+		"\xff\xfa\x100000050000000000\u007f" +
+			"00000000000000000000" +
+			"0000000000\xee\u007f0\xff\xff\xff\xff\u007f\xff\xff" +
+			"\xee\u007f\xff\xff\u007f\xff\xff\u007f\xff\xff\xfc\xee\xff\xef\xbf0\xef\xbf00" +
+			"0\xff\xee\u007f\xff\xff\u007f\xff\xff\xee\u007f\xff\xff\u007f\xff\xff\u007f\xff0\t" +
+			"\xff\xff\xee\xee",
 	}
 	for _, input := range inputs {
 		b := &bytesReadCloser{bytes.NewReader([]uint8(input))}
