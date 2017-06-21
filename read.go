@@ -199,11 +199,19 @@ func (m *mainDataBytes) readHuffman(header *mpeg1FrameHeader, sideInfo *mpeg1Sid
 		region_2_start = 576 // No Region2 for short block case.
 	} else {
 		sfreq := header.sampling_frequency
-		region_1_start =
-			sfBandIndicesSet[sfreq].l[sideInfo.region0_count[gr][ch]+1]
-		region_2_start =
-			sfBandIndicesSet[sfreq].l[sideInfo.region0_count[gr][ch]+
-				sideInfo.region1_count[gr][ch]+2]
+		l := sfBandIndicesSet[sfreq].l
+		i := sideInfo.region0_count[gr][ch] + 1
+		if i < 0 || len(l) <= i {
+			// TODO: Better error messages (#3)
+			return fmt.Errorf("mp3: readHuffman failed: invalid index i: %d", i)
+		}
+		region_1_start = l[i]
+		j := sideInfo.region0_count[gr][ch] + sideInfo.region1_count[gr][ch] + 2
+		if j < 0 || len(l) <= j {
+			// TODO: Better error messages (#3)
+			return fmt.Errorf("mp3: readHuffman failed: invalid index j: %d", j)
+		}
+		region_2_start = l[j]
 	}
 	// Read big_values using tables according to region_x_start
 	for is_pos := 0; is_pos < sideInfo.big_values[gr][ch]*2; is_pos++ {
