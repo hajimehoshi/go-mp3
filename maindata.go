@@ -206,6 +206,10 @@ func (s *source) getMainData(prev *mainDataBytes, size int, offset int) (*mainDa
 }
 
 func (m *mainDataBytes) getMainBit() int {
+	if len(m.vec) <= m.pos {
+		// TODO: Should this return error?
+		return 0
+	}
 	tmp := uint(m.vec[m.pos]) >> (7 - uint(m.idx))
 	tmp &= 0x01
 	m.pos += (m.idx + 1) >> 3
@@ -215,6 +219,10 @@ func (m *mainDataBytes) getMainBit() int {
 
 func (m *mainDataBytes) getMainBits(num int) int {
 	if num == 0 {
+		return 0
+	}
+	if len(m.vec) <= m.pos {
+		// TODO: Should this return error?
 		return 0
 	}
 	// Form a word of the next four bytes

@@ -37,11 +37,15 @@ func TestFuzzingIssue3(t *testing.T) {
 			"00000000000000000000" +
 			"00000000000000000000" +
 			"0000",
+		"\xff\xfb\x100004000094\xff000000" +
+			"00000000000000000000" +
+			"00\u007f0\xff\xee\u007f\xff\xee\u007f\xff\xff\u007f\xff\xff\xee\u007f\xff\xff0" +
+			"\xff\xff00\xff\xee\u007f\xff0000\u007f00\xff00\xee0" +
+			"000\xff000\xff\xff\xee\u007f0\xff0000\u007f\xff0" +
+			"00\xff0",
 	}
-	for i, input := range inputs {
+	for _, input := range inputs {
 		b := &bytesReadCloser{bytes.NewReader([]uint8(input))}
-		if _, err := Decode(b); err == nil {
-			t.Errorf("test %d must fail but not", i)
-		}
+		_, _ = Decode(b)
 	}
 }
