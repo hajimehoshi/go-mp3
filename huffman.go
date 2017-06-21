@@ -307,40 +307,40 @@ type huffTables struct {
 }
 
 var huffmanMain = [...]huffTables{
-	{nil, 0, 0},                    /* Table  0 */
-	{huffmanTable, 7, 0},           /* Table  1 */
-	{huffmanTable[7:], 17, 0},      /* Table  2 */
-	{huffmanTable[24:], 17, 0},     /* Table  3 */
-	{nil, 0, 0},                    /* Table  4 */
-	{huffmanTable[41:], 31, 0},     /* Table  5 */
-	{huffmanTable[72:], 31, 0},     /* Table  6 */
-	{huffmanTable[103:], 71, 0},    /* Table  7 */
-	{huffmanTable[174:], 71, 0},    /* Table  8 */
-	{huffmanTable[245:], 71, 0},    /* Table  9 */
-	{huffmanTable[316:], 127, 0},   /* Table 10 */
-	{huffmanTable[443:], 127, 0},   /* Table 11 */
-	{huffmanTable[570:], 127, 0},   /* Table 12 */
-	{huffmanTable[697:], 511, 0},   /* Table 13 */
-	{nil, 0, 0},                    /* Table 14 */
-	{huffmanTable[1208:], 511, 0},  /* Table 15 */
-	{huffmanTable[1719:], 511, 1},  /* Table 16 */
-	{huffmanTable[1719:], 511, 2},  /* Table 17 */
-	{huffmanTable[1719:], 511, 3},  /* Table 18 */
-	{huffmanTable[1719:], 511, 4},  /* Table 19 */
-	{huffmanTable[1719:], 511, 6},  /* Table 20 */
-	{huffmanTable[1719:], 511, 8},  /* Table 21 */
-	{huffmanTable[1719:], 511, 10}, /* Table 22 */
-	{huffmanTable[1719:], 511, 13}, /* Table 23 */
-	{huffmanTable[2230:], 512, 4},  /* Table 24 */
-	{huffmanTable[2230:], 512, 5},  /* Table 25 */
-	{huffmanTable[2230:], 512, 6},  /* Table 26 */
-	{huffmanTable[2230:], 512, 7},  /* Table 27 */
-	{huffmanTable[2230:], 512, 8},  /* Table 28 */
-	{huffmanTable[2230:], 512, 9},  /* Table 29 */
-	{huffmanTable[2230:], 512, 11}, /* Table 30 */
-	{huffmanTable[2230:], 512, 13}, /* Table 31 */
-	{huffmanTable[2742:], 31, 0},   /* Table 32 */
-	{huffmanTable[2261:], 31, 0},   /* Table 33 */
+	{nil, 0, 0},                    // Table  0
+	{huffmanTable, 7, 0},           // Table  1
+	{huffmanTable[7:], 17, 0},      // Table  2
+	{huffmanTable[24:], 17, 0},     // Table  3
+	{nil, 0, 0},                    // Table  4
+	{huffmanTable[41:], 31, 0},     // Table  5
+	{huffmanTable[72:], 31, 0},     // Table  6
+	{huffmanTable[103:], 71, 0},    // Table  7
+	{huffmanTable[174:], 71, 0},    // Table  8
+	{huffmanTable[245:], 71, 0},    // Table  9
+	{huffmanTable[316:], 127, 0},   // Table 10
+	{huffmanTable[443:], 127, 0},   // Table 11
+	{huffmanTable[570:], 127, 0},   // Table 12
+	{huffmanTable[697:], 511, 0},   // Table 13
+	{nil, 0, 0},                    // Table 14
+	{huffmanTable[1208:], 511, 0},  // Table 15
+	{huffmanTable[1719:], 511, 1},  // Table 16
+	{huffmanTable[1719:], 511, 2},  // Table 17
+	{huffmanTable[1719:], 511, 3},  // Table 18
+	{huffmanTable[1719:], 511, 4},  // Table 19
+	{huffmanTable[1719:], 511, 6},  // Table 20
+	{huffmanTable[1719:], 511, 8},  // Table 21
+	{huffmanTable[1719:], 511, 10}, // Table 22
+	{huffmanTable[1719:], 511, 13}, // Table 23
+	{huffmanTable[2230:], 512, 4},  // Table 24
+	{huffmanTable[2230:], 512, 5},  // Table 25
+	{huffmanTable[2230:], 512, 6},  // Table 26
+	{huffmanTable[2230:], 512, 7},  // Table 27
+	{huffmanTable[2230:], 512, 8},  // Table 28
+	{huffmanTable[2230:], 512, 9},  // Table 29
+	{huffmanTable[2230:], 512, 11}, // Table 30
+	{huffmanTable[2230:], 512, 13}, // Table 31
+	{huffmanTable[2742:], 31, 0},   // Table 32
+	{huffmanTable[2261:], 31, 0},   // Table 33
 }
 
 func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) {
@@ -349,24 +349,24 @@ func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) 
 	bitsleft := 32
 	treelen := huffmanMain[table_num].treelen
 	linbits := huffmanMain[table_num].linbits
-	if treelen == 0 { /* Check for empty tables */
+	if treelen == 0 { // Check for empty tables
 		return 0, 0, 0, 0, nil
 	}
 	htptr := huffmanMain[table_num].hufftable
-	for { /* Start reading the Huffman code word,bit by bit */
-		/* Check if we've matched a code word */
+	for { // Start reading the Huffman code word,bit by bit
+		// Check if we've matched a code word
 		if (htptr[point] & 0xff00) == 0 {
 			error = 0
 			x = int((htptr[point] >> 4) & 0xf)
 			y = int(htptr[point] & 0xf)
 			break
 		}
-		if m.getMainBit() != 0 { /* Go right in tree */
+		if m.getMainBit() != 0 { // Go right in tree
 			for (htptr[point] & 0xff) >= 250 {
 				point += int(htptr[point]) & 0xff
 			}
 			point += int(htptr[point]) & 0xff
-		} else { /* Go left in tree */
+		} else { // Go left in tree
 			for (htptr[point] >> 8) >= 250 {
 				point += int(htptr[point]) >> 8
 			}
@@ -377,12 +377,12 @@ func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) 
 			break
 		}
 	}
-	if error != 0 { /* Check for error. */
+	if error != 0 { // Check for error.
 		err := fmt.Errorf("mp3: illegal Huff code in data. bleft = %d, point = %d. tab = %d.",
 			bitsleft, point, table_num)
 		return 0, 0, 0, 0, err
 	}
-	if table_num > 31 { /* Process sign encodings for quadruples tables. */
+	if table_num > 31 { // Process sign encodings for quadruples tables.
 		v = (y >> 3) & 1
 		w = (y >> 2) & 1
 		x = (y >> 1) & 1
@@ -401,16 +401,16 @@ func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) 
 		}
 	} else {
 		if (linbits > 0) && (x == 15) {
-			x += m.getMainBits(linbits) /* Get linbits */
+			x += m.getMainBits(linbits) // Get linbits
 		}
 		if (x > 0) && (m.getMainBit() == 1) {
-			x = -x /* Get sign bit */
+			x = -x // Get sign bit
 		}
 		if (linbits > 0) && (y == 15) {
-			y += m.getMainBits(linbits) /* Get linbits */
+			y += m.getMainBits(linbits) // Get linbits
 		}
 		if (y > 0) && (m.getMainBit() == 1) {
-			y = -y /* Get sign bit */
+			y = -y // Get sign bit
 		}
 	}
 	return x, y, v, w, nil
