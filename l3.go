@@ -16,6 +16,8 @@ package mp3
 
 import (
 	"math"
+
+	"github.com/hajimehoshi/go-mp3/internal/imdct"
 )
 
 var (
@@ -387,7 +389,7 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 		for i := range in {
 			in[i] = f.mainData.is[gr][ch][sb*18+i]
 		}
-		rawout := imdctWin(in, bt)
+		rawout := imdct.Win(in, bt)
 		// Overlapp add with stored vector into main_data vector
 		for i := 0; i < 18; i++ {
 			f.mainData.is[gr][ch][sb*18+i] = rawout[i] + f.store[ch][sb][i]

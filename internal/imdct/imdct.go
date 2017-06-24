@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mp3
+package imdct
 
 var imdctWinData = [4][36]float32{
 	{
@@ -223,7 +223,7 @@ var cosN36 = [18][36]float32{
 	},
 }
 
-func imdctWin(in []float32, blockType int) []float32 {
+func Win(in []float32, blockType int) []float32 {
 	out := make([]float32, 36)
 	if blockType == 2 {
 		N := 12
