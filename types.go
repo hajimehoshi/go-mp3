@@ -14,6 +14,10 @@
 
 package mp3
 
+import (
+	"github.com/hajimehoshi/go-mp3/internal/bits"
+)
+
 type mpeg1Layer int
 
 const (
@@ -86,7 +90,7 @@ type frame struct {
 	sideInfo *mpeg1SideInfo
 	mainData *mpeg1MainData
 
-	mainDataBytes *mainDataBytes
+	mainDataBytes *bits.Bits
 	store         [2][32][18]float32
 	v_vec         [2][1024]float32
 }

@@ -17,6 +17,8 @@ package mp3
 import (
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/go-mp3/internal/bits"
 )
 
 func (s *source) readCRC() error {
@@ -62,7 +64,7 @@ func (s *source) readNextFrame(prev *frame) (*frame, error) {
 	// If there's not enough main data in the bit reservoir,
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)
-	var prevM *mainDataBytes
+	var prevM *bits.Bits
 	if prev != nil {
 		prevM = prev.mainDataBytes
 	}
@@ -181,7 +183,7 @@ func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 	return h, nil
 }
 
-func (m *mainDataBytes) readHuffman(header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
+func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
 	// Check that there is any data to decode. If not,zero the array.
 	if sideInfo.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < 576; is_pos++ {
@@ -236,7 +238,7 @@ func (m *mainDataBytes) readHuffman(header *mpeg1FrameHeader, sideInfo *mpeg1Sid
 	// Read small values until is_pos = 576 or we run out of huffman data
 	table_num := sideInfo.count1table_select[gr][ch] + 32
 	is_pos := sideInfo.big_values[gr][ch] * 2
-	for (is_pos <= 572) && (m.getMainPos() <= bit_pos_end) {
+	for (is_pos <= 572) && (m.Pos() <= bit_pos_end) {
 		// Get next Huffman coded words
 		x, y, v, w, err := huffmanDecode(m, table_num)
 		if err != nil {
@@ -261,7 +263,7 @@ func (m *mainDataBytes) readHuffman(header *mpeg1FrameHeader, sideInfo *mpeg1Sid
 		is_pos++
 	}
 	// Check that we didn't read past the end of this section
-	if m.getMainPos() > (bit_pos_end + 1) {
+	if m.Pos() > (bit_pos_end + 1) {
 		// Remove last words read
 		is_pos -= 4
 	}
@@ -273,6 +275,6 @@ func (m *mainDataBytes) readHuffman(header *mpeg1FrameHeader, sideInfo *mpeg1Sid
 		is_pos++
 	}
 	// Set the bitpos to point to the next part to read
-	m.setMainPos(bit_pos_end + 1)
+	m.SetPos(bit_pos_end + 1)
 	return nil
 }

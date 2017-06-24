@@ -17,6 +17,8 @@ package mp3
 import (
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/go-mp3/internal/bits"
 )
 
 func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
@@ -37,7 +39,7 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 	if header.protection_bit == 0 {
 		main_data_size -= 2
 	}
-	// Read sideinfo from bitstream into buffer used by getSideBits()
+	// Read sideinfo from bitstream into buffer used by Bits()
 	s, err := src.getSideinfo(sideinfo_size)
 	if err != nil {
 		return nil, err
@@ -45,35 +47,35 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 	// Parse audio data
 	// Pointer to where we should start reading main data
 	si := &mpeg1SideInfo{}
-	si.main_data_begin = s.getSideBits(9)
+	si.main_data_begin = s.Bits(9)
 	// Get private bits. Not used for anything.
 	if header.mode == mpeg1ModeSingleChannel {
-		si.private_bits = s.getSideBits(5)
+		si.private_bits = s.Bits(5)
 	} else {
-		si.private_bits = s.getSideBits(3)
+		si.private_bits = s.Bits(3)
 	}
 	// Get scale factor selection information
 	for ch := 0; ch < nch; ch++ {
 		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
-			si.scfsi[ch][scfsi_band] = s.getSideBits(1)
+			si.scfsi[ch][scfsi_band] = s.Bits(1)
 		}
 	}
 	// Get the rest of the side information
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			si.part2_3_length[gr][ch] = s.getSideBits(12)
-			si.big_values[gr][ch] = s.getSideBits(9)
-			si.global_gain[gr][ch] = s.getSideBits(8)
-			si.scalefac_compress[gr][ch] = s.getSideBits(4)
-			si.win_switch_flag[gr][ch] = s.getSideBits(1)
+			si.part2_3_length[gr][ch] = s.Bits(12)
+			si.big_values[gr][ch] = s.Bits(9)
+			si.global_gain[gr][ch] = s.Bits(8)
+			si.scalefac_compress[gr][ch] = s.Bits(4)
+			si.win_switch_flag[gr][ch] = s.Bits(1)
 			if si.win_switch_flag[gr][ch] == 1 {
-				si.block_type[gr][ch] = s.getSideBits(2)
-				si.mixed_block_flag[gr][ch] = s.getSideBits(1)
+				si.block_type[gr][ch] = s.Bits(2)
+				si.mixed_block_flag[gr][ch] = s.Bits(1)
 				for region := 0; region < 2; region++ {
-					si.table_select[gr][ch][region] = s.getSideBits(5)
+					si.table_select[gr][ch][region] = s.Bits(5)
 				}
 				for window := 0; window < 3; window++ {
-					si.subblock_gain[gr][ch][window] = s.getSideBits(3)
+					si.subblock_gain[gr][ch][window] = s.Bits(3)
 				}
 				if (si.block_type[gr][ch] == 2) && (si.mixed_block_flag[gr][ch] == 0) {
 					si.region0_count[gr][ch] = 8 // Implicit
@@ -85,27 +87,21 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 				si.region1_count[gr][ch] = 20 - si.region0_count[gr][ch]
 			} else {
 				for region := 0; region < 3; region++ {
-					si.table_select[gr][ch][region] = s.getSideBits(5)
+					si.table_select[gr][ch][region] = s.Bits(5)
 				}
-				si.region0_count[gr][ch] = s.getSideBits(4)
-				si.region1_count[gr][ch] = s.getSideBits(3)
+				si.region0_count[gr][ch] = s.Bits(4)
+				si.region1_count[gr][ch] = s.Bits(3)
 				si.block_type[gr][ch] = 0 // Implicit
 			}
-			si.preflag[gr][ch] = s.getSideBits(1)
-			si.scalefac_scale[gr][ch] = s.getSideBits(1)
-			si.count1table_select[gr][ch] = s.getSideBits(1)
+			si.preflag[gr][ch] = s.Bits(1)
+			si.scalefac_scale[gr][ch] = s.Bits(1)
+			si.count1table_select[gr][ch] = s.Bits(1)
 		}
 	}
 	return si, nil
 }
 
-// A sideInfoBytes is a bit reservoir for side info
-type sideInfoBytes struct {
-	vec []int
-	idx int // Index into the current byte(0-7)
-}
-
-func (src *source) getSideinfo(size int) (*sideInfoBytes, error) {
+func (src *source) getSideinfo(size int) (*bits.Bits, error) {
 	buf := make([]int, size)
 	n := 0
 	var err error
@@ -121,28 +117,8 @@ func (src *source) getSideinfo(size int) (*sideInfoBytes, error) {
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
 			size, src.getFilepos(), err)
 	}
-	s := &sideInfoBytes{
-		vec: buf[:n],
+	s := &bits.Bits{
+		Vec: buf[:n],
 	}
 	return s, nil
-}
-
-func (s *sideInfoBytes) getSideBits(num int) int {
-	// Form a word of the next four bytes
-	// TODO: endianness?
-	b := make([]int, 4)
-	for i := range b {
-		if len(s.vec) > i {
-			b[i] = s.vec[i]
-		}
-	}
-	tmp := (uint32(b[0]) << 24) | (uint32(b[1]) << 16) | (uint32(b[2]) << 8) | (uint32(b[3]) << 0)
-	// Remove bits already used
-	tmp = tmp << uint(s.idx)
-	// Remove bits after the desired bits
-	tmp = tmp >> (32 - uint(num))
-	// Update pointers
-	s.vec = s.vec[(s.idx+int(num))>>3:]
-	s.idx = (s.idx + int(num)) & 0x07
-	return int(tmp)
 }

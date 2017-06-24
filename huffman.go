@@ -16,6 +16,8 @@ package mp3
 
 import (
 	"fmt"
+
+	"github.com/hajimehoshi/go-mp3/internal/bits"
 )
 
 var huffmanTable = []uint16{
@@ -343,7 +345,7 @@ var huffmanMain = [...]huffTables{
 	{huffmanTable[2261:], 31, 0},   // Table 33
 }
 
-func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) {
+func huffmanDecode(m *bits.Bits, table_num int) (x, y, v, w int, err error) {
 	point := 0
 	error := 1
 	bitsleft := 32
@@ -361,7 +363,7 @@ func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) 
 			y = int(htptr[point] & 0xf)
 			break
 		}
-		if m.getMainBit() != 0 { // Go right in tree
+		if m.Bit() != 0 { // Go right in tree
 			for (htptr[point] & 0xff) >= 250 {
 				point += int(htptr[point]) & 0xff
 			}
@@ -387,29 +389,29 @@ func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) 
 		w = (y >> 2) & 1
 		x = (y >> 1) & 1
 		y = y & 1
-		if (v > 0) && (m.getMainBit() == 1) {
+		if (v > 0) && (m.Bit() == 1) {
 			v = -v
 		}
-		if (w > 0) && (m.getMainBit() == 1) {
+		if (w > 0) && (m.Bit() == 1) {
 			w = -w
 		}
-		if (x > 0) && (m.getMainBit() == 1) {
+		if (x > 0) && (m.Bit() == 1) {
 			x = -x
 		}
-		if (y > 0) && (m.getMainBit() == 1) {
+		if (y > 0) && (m.Bit() == 1) {
 			y = -y
 		}
 	} else {
 		if (linbits > 0) && (x == 15) {
-			x += m.getMainBits(linbits) // Get linbits
+			x += m.Bits(linbits) // Get linbits
 		}
-		if (x > 0) && (m.getMainBit() == 1) {
+		if (x > 0) && (m.Bit() == 1) {
 			x = -x // Get sign bit
 		}
 		if (linbits > 0) && (y == 15) {
-			y += m.getMainBits(linbits) // Get linbits
+			y += m.Bits(linbits) // Get linbits
 		}
-		if (y > 0) && (m.getMainBit() == 1) {
+		if (y > 0) && (m.Bit() == 1) {
 			y = -y // Get sign bit
 		}
 	}
