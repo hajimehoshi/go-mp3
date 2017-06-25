@@ -51,7 +51,7 @@ func (f *frame) decodeL3() []uint8 {
 
 type source struct {
 	reader io.ReadCloser
-	pos    int
+	pos    int64
 }
 
 func (s *source) Close() error {
@@ -69,11 +69,11 @@ func (s *source) rewind() error {
 
 func (s *source) getBytes(buf []uint8) (int, error) {
 	n, err := io.ReadFull(s.reader, buf)
-	s.pos += n
+	s.pos += int64(n)
 	return n, err
 }
 
-func (s *source) getFilepos() int {
+func (s *source) getFilepos() int64 {
 	return s.pos
 }
 
@@ -83,7 +83,7 @@ type Decoded struct {
 	length      int64
 	buf         []uint8
 	frame       *frame
-	frameStarts []int
+	frameStarts []int64
 	eof         bool
 }
 
@@ -162,7 +162,7 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 		var f *frame
 		for {
 			var err error
-			pos := 0
+			pos := int64(0)
 			f, pos, err = s.readNextFrame(f)
 			if err != nil {
 				if err == io.EOF {

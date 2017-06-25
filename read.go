@@ -33,7 +33,7 @@ func (s *source) readCRC() error {
 	return nil
 }
 
-func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int, err error) {
+func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err error) {
 	h, pos, err := s.readHeader()
 	if err != nil {
 		return nil, 0, err
@@ -92,7 +92,7 @@ func isHeader(header uint32) bool {
 	return true
 }
 
-func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int, err error) {
+func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err error) {
 	// Get the next four bytes from the bitstream
 	pos := s.getFilepos()
 	buf := make([]uint8, 4)
