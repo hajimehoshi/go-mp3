@@ -164,7 +164,7 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 			Vec: append(prev.Vec, buf...),
 		}
 		// TODO: Define a special error and enable to continue the next frame.
-		return m, fmt.Errorf("mp3: frame can't be decoded")
+		return m, nil
 	}
 	// Copy data from previous frames
 	vec := []uint8{}
