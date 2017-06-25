@@ -97,7 +97,10 @@ func (d *Decoded) read() error {
 			// TODO: Log here?
 			d.eof = true
 		}
-		return io.EOF
+		if d.eof {
+			return io.EOF
+		}
+		return err
 	}
 	d.buf = append(d.buf, d.frame.decodeL3()...)
 	return nil
