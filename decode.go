@@ -78,17 +78,18 @@ func (s *source) getFilepos() int {
 }
 
 type Decoded struct {
-	source     *source
-	sampleRate int
-	length     int64
-	buf        []uint8
-	frame      *frame
-	eof        bool
+	source      *source
+	sampleRate  int
+	length      int64
+	buf         []uint8
+	frame       *frame
+	frameStarts []int
+	eof         bool
 }
 
 func (d *Decoded) read() error {
 	var err error
-	d.frame, err = d.source.readNextFrame(d.frame)
+	d.frame, _, err = d.source.readNextFrame(d.frame)
 	if err != nil {
 		if err == io.EOF {
 			d.eof = true
@@ -161,7 +162,8 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 		var f *frame
 		for {
 			var err error
-			f, err = s.readNextFrame(f)
+			pos := 0
+			f, pos, err = s.readNextFrame(f)
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -172,6 +174,7 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 				}
 				return nil, err
 			}
+			d.frameStarts = append(d.frameStarts, pos)
 			l += bytesPerFrame
 		}
 		if err := s.rewind(); err != nil {
