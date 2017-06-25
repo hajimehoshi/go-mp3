@@ -170,7 +170,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 }
 
 func (f *frame) l3Reorder(gr int, ch int) {
-	re := make([]float32, 576)
+	re := make([]float32, samplesPerFrame)
 
 	sfreq := f.header.sampling_frequency // Setup sampling freq index
 	// Only reorder short blocks
@@ -188,7 +188,7 @@ func (f *frame) l3Reorder(gr int, ch int) {
 		if sfb == 0 {
 			i = 0
 		}
-		for i < 576 {
+		for i < samplesPerFrame {
 			// Check if we're into the next scalefac band
 			if i == next_sfb {
 				// Copy reordered data back to the original vector
@@ -399,7 +399,7 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 }
 
 func (f *frame) l3FrequencyInversion(gr int, ch int) {
-	for sb := 1; sb < 32; sb += 2 { //OPT? : for(sb = 18; sb < 576; sb += 36)
+	for sb := 1; sb < 32; sb += 2 {
 		for i := 1; i < 18; i += 2 {
 			f.mainData.is[gr][ch][sb*18+i] = -f.mainData.is[gr][ch][sb*18+i]
 		}

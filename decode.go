@@ -28,7 +28,7 @@ func (u *unexpectedEOF) Error() string {
 }
 
 func (f *frame) decodeL3() []uint8 {
-	out := make([]uint8, 576*4*2)
+	out := make([]uint8, bytesPerFrame)
 	nch := f.header.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
@@ -43,7 +43,7 @@ func (f *frame) decodeL3() []uint8 {
 			f.l3HybridSynthesis(gr, ch)
 			f.l3FrequencyInversion(gr, ch)
 			// Polyphase subband synthesis
-			f.l3SubbandSynthesis(gr, ch, out[576*4*gr:])
+			f.l3SubbandSynthesis(gr, ch, out[samplesPerFrame*4*gr:])
 		}
 	}
 	return out
@@ -176,7 +176,7 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 				}
 				return nil, err
 			}
-			l += 576 * 4 * 2
+			l += bytesPerFrame
 		}
 		if err := s.rewind(); err != nil {
 			return nil, err

@@ -186,7 +186,7 @@ func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
 	// Check that there is any data to decode. If not,zero the array.
 	if sideInfo.part2_3_length[gr][ch] == 0 {
-		for is_pos := 0; is_pos < 576; is_pos++ {
+		for is_pos := 0; is_pos < samplesPerFrame; is_pos++ {
 			mainData.is[gr][ch][is_pos] = 0.0
 		}
 		return nil
@@ -198,7 +198,7 @@ func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo
 	region_2_start := 0
 	if (sideInfo.win_switch_flag[gr][ch] == 1) && (sideInfo.block_type[gr][ch] == 2) {
 		region_1_start = 36  // sfb[9/3]*3=36
-		region_2_start = 576 // No Region2 for short block case.
+		region_2_start = samplesPerFrame // No Region2 for short block case.
 	} else {
 		sfreq := header.sampling_frequency
 		l := sfBandIndicesSet[sfreq].l
@@ -246,17 +246,17 @@ func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo
 		}
 		mainData.is[gr][ch][is_pos] = float32(v)
 		is_pos++
-		if is_pos >= 576 {
+		if is_pos >= samplesPerFrame {
 			break
 		}
 		mainData.is[gr][ch][is_pos] = float32(w)
 		is_pos++
-		if is_pos >= 576 {
+		if is_pos >= samplesPerFrame {
 			break
 		}
 		mainData.is[gr][ch][is_pos] = float32(x)
 		is_pos++
-		if is_pos >= 576 {
+		if is_pos >= samplesPerFrame {
 			break
 		}
 		mainData.is[gr][ch][is_pos] = float32(y)
@@ -270,7 +270,7 @@ func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo
 	// Setup count1 which is the index of the first sample in the rzero reg.
 	sideInfo.count1[gr][ch] = is_pos
 	// Zero out the last part if necessary
-	for is_pos < 576 {
+	for is_pos < samplesPerFrame {
 		mainData.is[gr][ch][is_pos] = 0.0
 		is_pos++
 	}
