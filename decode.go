@@ -81,10 +81,10 @@ type Decoded struct {
 	source      *source
 	sampleRate  int
 	length      int64
+	frameStarts []int64
 	buf         []uint8
 	frame       *frame
-	frameStarts []int64
-	eof         bool
+	pos         int64
 }
 
 func (d *Decoded) readFrame() error {
@@ -92,13 +92,10 @@ func (d *Decoded) readFrame() error {
 	d.frame, _, err = d.source.readNextFrame(d.frame)
 	if err != nil {
 		if err == io.EOF {
-			d.eof = true
+			return io.EOF
 		}
 		if _, ok := err.(*unexpectedEOF); ok {
 			// TODO: Log here?
-			d.eof = true
-		}
-		if d.eof {
 			return io.EOF
 		}
 		return err
@@ -109,17 +106,64 @@ func (d *Decoded) readFrame() error {
 
 // Read is io.Reader's Read.
 func (d *Decoded) Read(buf []uint8) (int, error) {
-	for len(d.buf) == 0 && !d.eof {
+	for len(d.buf) == 0 {
 		if err := d.readFrame(); err != nil {
 			return 0, err
 		}
 	}
-	if d.eof {
-		return 0, io.EOF
-	}
 	n := copy(buf, d.buf)
 	d.buf = d.buf[n:]
+	d.pos += int64(n)
 	return n, nil
+}
+
+// Seek is io.Seeker's Seek.
+//
+// Seek panics when the underlying source is not io.Seeker.
+func (d *Decoded) Seek(offset int64, whence int) (int64, error) {
+	s, ok := d.source.reader.(io.Seeker)
+	if !ok {
+		panic("mp3: d.reader must be io.Seeker")
+	}
+	npos := int64(0)
+	switch whence {
+	case io.SeekStart:
+		npos = offset
+	case io.SeekCurrent:
+		npos = d.pos + offset
+	case io.SeekEnd:
+		npos = d.length + offset
+	default:
+		panic(fmt.Sprintf("mp3: invalid whence: %v", whence))
+	}
+	d.pos = npos
+	d.buf = nil
+	d.frame = nil
+	f := d.pos / bytesPerFrame
+	// If the frame is not first, read the previous ahead of reading that
+	// because the previous frame can affect the targeted frame.
+	if f > 0 {
+		f--
+		if _, err := s.Seek(d.frameStarts[f], 0); err != nil {
+			return 0, err
+		}
+		if err := d.readFrame(); err != nil {
+			return 0, err
+		}
+		if err := d.readFrame(); err != nil {
+			return 0, err
+		}
+		d.buf = d.buf[bytesPerFrame+(d.pos%bytesPerFrame):]
+	} else {
+		if _, err := s.Seek(d.frameStarts[f], 0); err != nil {
+			return 0, err
+		}
+		if err := d.readFrame(); err != nil {
+			return 0, err
+		}
+		d.buf = d.buf[d.pos:]
+	}
+	return npos, nil
 }
 
 // Close is io.Closer's Close.
