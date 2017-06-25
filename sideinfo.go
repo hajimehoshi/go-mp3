@@ -101,15 +101,9 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 	return si, nil
 }
 
-func (src *source) getSideinfo(size int) (*bits.Bits, error) {
+func (s *source) getSideinfo(size int) (*bits.Bits, error) {
 	buf := make([]uint8, size)
-	n := 0
-	var err error
-	for n < size && err == nil {
-		nn, err2 := src.getBytes(buf[n:])
-		n += nn
-		err = err2
-	}
+	n, err := s.getBytes(buf)
 	if n < size {
 		if err == io.EOF {
 			return nil, &unexpectedEOF{"getSideinfo"}
@@ -117,8 +111,7 @@ func (src *source) getSideinfo(size int) (*bits.Bits, error) {
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes: %v",
 			size, err)
 	}
-	s := &bits.Bits{
-		Vec: buf[:n],
-	}
-	return s, nil
+	return &bits.Bits{
+		Vec: buf,
+	}, nil
 }

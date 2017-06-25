@@ -23,21 +23,12 @@ import (
 
 func (s *source) readCRC() error {
 	buf := make([]uint8, 2)
-	n := 0
-	var err error
-	for n < 2 && err == nil {
-		nn, err2 := s.getBytes(buf[n:])
-		n += nn
-		err = err2
-	}
-	if err == io.EOF {
-		if n < 2 {
+	n, err := s.getBytes(buf)
+	if n < 2 {
+		if err == io.EOF {
 			return &unexpectedEOF{"readCRC"}
 		}
-		return nil
-	}
-	if err != nil {
-		return err
+		return fmt.Errorf("mp3: error at readCRC: %v", err)
 	}
 	return nil
 }
@@ -104,13 +95,7 @@ func isHeader(header uint32) bool {
 func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 	// Get the next four bytes from the bitstream
 	buf := make([]uint8, 4)
-	n := 0
-	var err error
-	for n < 4 && err == nil {
-		nn, err2 := s.getBytes(buf[n:])
-		n += nn
-		err = err2
-	}
+	n, err := s.getBytes(buf)
 	if n < 4 {
 		if err == io.EOF {
 			if n == 0 {

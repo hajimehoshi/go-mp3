@@ -153,13 +153,7 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
 		buf := make([]uint8, size)
-		n := 0
-		var err error
-		for n < size && err == nil {
-			nn, err2 := s.getBytes(buf)
-			n += nn
-			err = err2
-		}
+		n, err := s.getBytes(buf)
 		if n < size {
 			if err == io.EOF {
 				return nil, &unexpectedEOF{"getMainData (1)"}
@@ -180,13 +174,7 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 	}
 	// Read the main_data from file
 	buf := make([]uint8, size)
-	n := 0
-	var err error
-	for n < size && err == nil {
-		nn, err2 := s.getBytes(buf)
-		n += nn
-		err = err2
-	}
+	n, err := s.getBytes(buf)
 	if n < size {
 		if err == io.EOF {
 			return nil, &unexpectedEOF{"getMainData (2)"}
