@@ -67,13 +67,6 @@ func (s *source) rewind() error {
 	return nil
 }
 
-func (s *source) getByte() (uint8, error) {
-	b := make([]uint8, 1)
-	n, err := s.getBytes(b)
-	s.pos += n
-	return b[0], err
-}
-
 func (s *source) getBytes(buf []uint8) (int, error) {
 	n, err := io.ReadFull(s.reader, buf)
 	s.pos += n

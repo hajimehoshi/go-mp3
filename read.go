@@ -118,14 +118,14 @@ func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 		b2 = b3
 		b3 = b4
 		// Get one new byte from the bitstream
-		b, err := s.getByte()
-		if err != nil {
+		buf := make([]uint8, 1)
+		if _, err := s.getBytes(buf); err != nil {
 			if err == io.EOF {
 				return nil, &unexpectedEOF{"readHeader (2)"}
 			}
 			return nil, err
 		}
-		b4 = uint32(b)
+		b4 = uint32(buf[0])
 		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 	}
 	// If we get here we've found the sync word,and can decode the header
