@@ -87,7 +87,7 @@ type Decoded struct {
 	eof         bool
 }
 
-func (d *Decoded) read() error {
+func (d *Decoded) readFrame() error {
 	var err error
 	d.frame, _, err = d.source.readNextFrame(d.frame)
 	if err != nil {
@@ -110,7 +110,7 @@ func (d *Decoded) read() error {
 // Read is io.Reader's Read.
 func (d *Decoded) Read(buf []uint8) (int, error) {
 	for len(d.buf) == 0 && !d.eof {
-		if err := d.read(); err != nil {
+		if err := d.readFrame(); err != nil {
 			return 0, err
 		}
 	}
@@ -182,7 +182,7 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 		}
 		d.length = l
 	}
-	if err := d.read(); err != nil {
+	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
 	d.sampleRate = samplingFrequency[d.frame.header.sampling_frequency]
