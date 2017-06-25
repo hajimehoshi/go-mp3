@@ -43,7 +43,7 @@ func (f *frame) decodeL3() []uint8 {
 			f.l3HybridSynthesis(gr, ch)
 			f.l3FrequencyInversion(gr, ch)
 			// Polyphase subband synthesis
-			f.l3SubbandSynthesis(gr, ch, out[samplesPerFrame*4*gr:])
+			f.l3SubbandSynthesis(gr, ch, out[samplesPerGr*4*gr:])
 		}
 	}
 	return out

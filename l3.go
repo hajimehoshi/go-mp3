@@ -170,7 +170,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 }
 
 func (f *frame) l3Reorder(gr int, ch int) {
-	re := make([]float32, samplesPerFrame)
+	re := make([]float32, samplesPerGr)
 
 	sfreq := f.header.sampling_frequency // Setup sampling freq index
 	// Only reorder short blocks
@@ -188,7 +188,7 @@ func (f *frame) l3Reorder(gr int, ch int) {
 		if sfb == 0 {
 			i = 0
 		}
-		for i < samplesPerFrame {
+		for i < samplesPerGr {
 			// Check if we're into the next scalefac band
 			if i == next_sfb {
 				// Copy reordered data back to the original vector
