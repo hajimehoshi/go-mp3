@@ -77,6 +77,9 @@ func (s *source) getFilepos() int64 {
 	return s.pos
 }
 
+// A Decoded is a MP3-decoded stream.
+//
+// Decoded decodes its underlying source on the fly.
 type Decoded struct {
 	source      *source
 	sampleRate  int
@@ -186,7 +189,7 @@ func (d *Decoded) Length() int64 {
 	return d.length
 }
 
-// Decode decodes the given io.ReadCLoser and returns a decoded stream.
+// Decode decodes the given io.ReadCloser and returns a decoded stream.
 //
 // The stream is always formatted as 16bit (little endian) 2 channels
 // even if the source is single channel MP3.
