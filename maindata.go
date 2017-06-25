@@ -149,10 +149,10 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 	}
 	// Check that there's data available from previous frames if needed
 	if prev != nil && offset > len(prev.Vec) {
-		// No,there is not, so we skip decoding this frame, but we have to
+		// No, there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
-		buf := make([]int, size)
+		buf := make([]uint8, size)
 		n := 0
 		var err error
 		for n < size && err == nil {
@@ -173,13 +173,13 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 		return m, fmt.Errorf("mp3: frame can't be decoded")
 	}
 	// Copy data from previous frames
-	vec := []int{}
+	vec := []uint8{}
 	if prev != nil {
 		v := prev.Vec
 		vec = v[len(v)-offset:]
 	}
 	// Read the main_data from file
-	buf := make([]int, size)
+	buf := make([]uint8, size)
 	n := 0
 	var err error
 	for n < size && err == nil {

@@ -102,7 +102,7 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 }
 
 func (src *source) getSideinfo(size int) (*bits.Bits, error) {
-	buf := make([]int, size)
+	buf := make([]uint8, size)
 	n := 0
 	var err error
 	for n < size && err == nil {

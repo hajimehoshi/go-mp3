@@ -22,7 +22,7 @@ import (
 )
 
 func (s *source) readCRC() error {
-	buf := make([]int, 2)
+	buf := make([]uint8, 2)
 	n := 0
 	var err error
 	for n < 2 && err == nil {
@@ -103,7 +103,7 @@ func isHeader(header uint32) bool {
 
 func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 	// Get the next four bytes from the bitstream
-	buf := make([]int, 4)
+	buf := make([]uint8, 4)
 	n := 0
 	var err error
 	for n < 4 && err == nil {

@@ -50,10 +50,8 @@ func (f *frame) decodeL3() []uint8 {
 }
 
 type source struct {
-	reader      io.ReadCloser
-	readerCache []uint8
-	readerPos   int
-	readerEOF   bool
+	reader io.ReadCloser
+	pos    int
 }
 
 func (s *source) Close() error {
@@ -65,47 +63,25 @@ func (s *source) rewind() error {
 	if _, err := seeker.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
-	s.readerCache = nil
-	s.readerPos = 0
-	s.readerEOF = false
+	s.pos = 0
 	return nil
 }
 
 func (s *source) getByte() (uint8, error) {
-	for len(s.readerCache) == 0 && !s.readerEOF {
-		buf := make([]uint8, 4096)
-		n, err := s.reader.Read(buf)
-		s.readerCache = append(s.readerCache, buf[:n]...)
-		if err != nil {
-			if err == io.EOF {
-				s.readerEOF = true
-				break
-			}
-			return 0, err
-		}
-	}
-	if len(s.readerCache) == 0 {
-		return 0, io.EOF
-	}
-	b := s.readerCache[0]
-	s.readerCache = s.readerCache[1:]
-	s.readerPos++
-	return b, nil
+	b := make([]uint8, 1)
+	n, err := s.getBytes(b)
+	s.pos += n
+	return b[0], err
 }
 
-func (s *source) getBytes(buf []int) (int, error) {
-	for i := range buf {
-		v, err := s.getByte()
-		buf[i] = int(v)
-		if err == io.EOF {
-			return i, io.EOF
-		}
-	}
-	return len(buf), nil
+func (s *source) getBytes(buf []uint8) (int, error) {
+	n, err := io.ReadFull(s.reader, buf)
+	s.pos += n
+	return n, err
 }
 
 func (s *source) getFilepos() int {
-	return s.readerPos
+	return s.pos
 }
 
 type Decoded struct {
