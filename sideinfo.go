@@ -114,8 +114,8 @@ func (src *source) getSideinfo(size int) (*bits.Bits, error) {
 		if err == io.EOF {
 			return nil, &unexpectedEOF{"getSideinfo"}
 		}
-		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
-			size, src.getFilepos(), err)
+		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes: %v",
+			size, err)
 	}
 	s := &bits.Bits{
 		Vec: buf[:n],
