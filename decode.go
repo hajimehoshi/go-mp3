@@ -69,6 +69,12 @@ func (s *source) rewind() error {
 
 func (s *source) getBytes(buf []uint8) (int, error) {
 	n, err := io.ReadFull(s.reader, buf)
+	if err != nil {
+		// Allow if all data can't be read. This is common.
+		if err == io.ErrUnexpectedEOF {
+			err = io.EOF
+		}
+	}
 	s.pos += int64(n)
 	return n, err
 }
