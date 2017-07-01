@@ -30,16 +30,19 @@ func run() error {
 		return err
 	}
 	defer f.Close()
+
 	d, err := mp3.Decode(f)
 	if err != nil {
 		return err
 	}
 	defer d.Close()
-	p, err := oto.NewPlayer(d.SampleRate(), 2, 2, 65536)
+
+	p, err := oto.NewPlayer(d.SampleRate(), 2, 2, 8192)
 	if err != nil {
 		return err
 	}
 	defer p.Close()
+
 	if _, err := io.Copy(p, d); err != nil {
 		return err
 	}
