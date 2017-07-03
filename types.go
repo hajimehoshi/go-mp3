@@ -14,9 +14,7 @@
 
 package mp3
 
-import (
-	"github.com/hajimehoshi/go-mp3/internal/bits"
-)
+import "github.com/hajimehoshi/go-mp3/internal/bits"
 
 type mpeg1Layer int
 
@@ -37,19 +35,54 @@ const (
 )
 
 // A mepg1FrameHeader is MPEG1 Layer 1-3 frame header
-type mpeg1FrameHeader struct {
-	id                 int        // 1 bit
-	layer              mpeg1Layer // 2 bits
-	protection_bit     int        // 1 bit
-	bitrate_index      int        // 4 bits
-	sampling_frequency int        // 2 bits
-	padding_bit        int        // 1 bit
-	private_bit        int        // 1 bit
-	mode               mpeg1Mode  // 2 bits
-	mode_extension     int        // 2 bits
-	copyright          int        // 1 bit
-	original_or_copy   int        // 1 bit
-	emphasis           int        // 2 bits
+type mpeg1FrameHeader int
+
+func (m mpeg1FrameHeader) ID() int {
+	return int((m & 0x00180000) >> 19)
+}
+
+func (m mpeg1FrameHeader) Layer() mpeg1Layer {
+	return mpeg1Layer((m & 0x00060000) >> 17)
+}
+
+func (m mpeg1FrameHeader) ProtectionBit() int {
+	return int(m&0x00010000) >> 16
+}
+
+func (m mpeg1FrameHeader) BitrateIndex() int {
+	return int(m&0x0000f000) >> 12
+}
+
+func (m mpeg1FrameHeader) SamplingFrequency() int {
+	return int(m&0x00000c00) >> 10
+}
+
+func (m mpeg1FrameHeader) PaddingBit() int {
+	return int(m&0x00000200) >> 9
+}
+
+func (m mpeg1FrameHeader) PrivateBit() int {
+	return int(m&0x00000100) >> 8
+}
+
+func (m mpeg1FrameHeader) Mode() mpeg1Mode {
+	return mpeg1Mode((m & 0x000000c0) >> 6)
+}
+
+func (m mpeg1FrameHeader) ModeExtension() int {
+	return int(m&0x00000030) >> 4
+}
+
+func (m mpeg1FrameHeader) Copyright() int {
+	return int(m&0x00000008) >> 3
+}
+
+func (m mpeg1FrameHeader) OriginalOrCopy() int {
+	return int(m&0x00000004) >> 2
+}
+
+func (m mpeg1FrameHeader) Emphasis() int {
+	return int(m&0x00000003) >> 0
 }
 
 // A mpeg1SideInfo is  MPEG1 Layer 3 Side Information.
@@ -113,13 +146,13 @@ var mpeg1Bitrates = map[mpeg1Layer][15]int{
 var samplingFrequency = []int{44100, 48000, 32000}
 
 func (h *mpeg1FrameHeader) frameSize() int {
-	return (144*mpeg1Bitrates[h.layer][h.bitrate_index])/
-		samplingFrequency[h.sampling_frequency] +
-		int(h.padding_bit)
+	return (144*mpeg1Bitrates[h.Layer()][h.BitrateIndex()])/
+		samplingFrequency[h.SamplingFrequency()] +
+		int(h.PaddingBit())
 }
 
 func (h *mpeg1FrameHeader) numberOfChannels() int {
-	if h.mode == mpeg1ModeSingleChannel {
+	if h.Mode() == mpeg1ModeSingleChannel {
 		return 1
 	}
 	return 2

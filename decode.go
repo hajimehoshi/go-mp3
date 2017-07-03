@@ -238,6 +238,6 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
-	d.sampleRate = samplingFrequency[d.frame.header.sampling_frequency]
+	d.sampleRate = samplingFrequency[d.frame.header.SamplingFrequency()]
 	return d, nil
 }
