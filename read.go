@@ -132,7 +132,7 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 	}
 	// If we get here we've found the sync word,and can decode the header
 	// which is in the low 20 bits of the 32-bit sync+header word.
-	// Decode the header
+	// NewDecoder the header
 	head := mpeg1FrameHeader(header)
 
 	// Check for invalid values and impossible combinations
