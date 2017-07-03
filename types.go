@@ -37,50 +37,63 @@ const (
 // A mepg1FrameHeader is MPEG1 Layer 1-3 frame header
 type mpeg1FrameHeader int
 
+// ID returns this header's ID stored in position 20,19
 func (m mpeg1FrameHeader) ID() int {
 	return int((m & 0x00180000) >> 19)
 }
 
+// Layer returns the mpeg layer of this frame stored in position 18,17
 func (m mpeg1FrameHeader) Layer() mpeg1Layer {
 	return mpeg1Layer((m & 0x00060000) >> 17)
 }
 
+// ProtectionBit returns the protection bit stored in position 16
 func (m mpeg1FrameHeader) ProtectionBit() int {
 	return int(m&0x00010000) >> 16
 }
 
+// BirateIndex returns the bitrate index stored in position 15,12
 func (m mpeg1FrameHeader) BitrateIndex() int {
 	return int(m&0x0000f000) >> 12
 }
 
+// SamplingFrequency returns the SamplingFrequency in Hz stored in position 11,10
 func (m mpeg1FrameHeader) SamplingFrequency() int {
 	return int(m&0x00000c00) >> 10
 }
 
+// PaddingBit returns the padding bit stored in position 9
 func (m mpeg1FrameHeader) PaddingBit() int {
 	return int(m&0x00000200) >> 9
 }
 
+// PrivateBit returns the private bit stored in position 8 - this bit may be used to store arbitrary data to be used
+// by an application
 func (m mpeg1FrameHeader) PrivateBit() int {
 	return int(m&0x00000100) >> 8
 }
 
+// Mode returns the channel mode, stored in position 7,6
 func (m mpeg1FrameHeader) Mode() mpeg1Mode {
 	return mpeg1Mode((m & 0x000000c0) >> 6)
 }
 
+// ModeExtension returns the mode_extension - for use with Joint Stereo - stored in position 4,5
 func (m mpeg1FrameHeader) ModeExtension() int {
 	return int(m&0x00000030) >> 4
 }
 
+// Copyright returns whether or not this recording is copywritten - stored in position 3
 func (m mpeg1FrameHeader) Copyright() int {
 	return int(m&0x00000008) >> 3
 }
 
+// OriginalOrCopy returns whether or not this is an Original recording or a copy of one - stored in position 2
 func (m mpeg1FrameHeader) OriginalOrCopy() int {
 	return int(m&0x00000004) >> 2
 }
 
+// Emphasis returns emphasis - the emphasis indication is here to tell the decoder that the file must be de-emphasized - stored in position 0,1
 func (m mpeg1FrameHeader) Emphasis() int {
 	return int(m&0x00000003) >> 0
 }
