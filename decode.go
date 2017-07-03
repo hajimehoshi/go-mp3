@@ -96,6 +96,10 @@ type Decoder struct {
 	pos         int64
 }
 
+// Decoded is the old type name for the Decoder
+// DEPRECATED
+type Decoded Decoder
+
 func (d *Decoder) readFrame() error {
 	var err error
 	d.frame, _, err = d.source.readNextFrame(d.frame)
