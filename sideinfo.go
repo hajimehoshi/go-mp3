@@ -36,7 +36,7 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 	// Main data size is the rest of the frame,including ancillary data
 	main_data_size := framesize - sideinfo_size - 4 // sync+header
 	// CRC is 2 bytes
-	if header.protection_bit == 0 {
+	if header.ProtectionBit() == 0 {
 		main_data_size -= 2
 	}
 	// Read sideinfo from bitstream into buffer used by Bits()
@@ -49,7 +49,7 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 	si := &mpeg1SideInfo{}
 	si.main_data_begin = s.Bits(9)
 	// Get private bits. Not used for anything.
-	if header.mode == mpeg1ModeSingleChannel {
+	if header.Mode() == mpeg1ModeSingleChannel {
 		si.private_bits = s.Bits(5)
 	} else {
 		si.private_bits = s.Bits(3)

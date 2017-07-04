@@ -83,10 +83,10 @@ func (s *source) getFilepos() int64 {
 	return s.pos
 }
 
-// A Decoded is a MP3-decoded stream.
+// A Decoder is a MP3-decoded stream.
 //
-// Decoded decodes its underlying source on the fly.
-type Decoded struct {
+// Decoder decodes its underlying source on the fly.
+type Decoder struct {
 	source      *source
 	sampleRate  int
 	length      int64
@@ -96,7 +96,13 @@ type Decoded struct {
 	pos         int64
 }
 
-func (d *Decoded) readFrame() error {
+// Decoded is the old type name for the Decoder
+// DEPRECATED
+type Decoded struct {
+	*Decoder
+}
+
+func (d *Decoder) readFrame() error {
 	var err error
 	d.frame, _, err = d.source.readNextFrame(d.frame)
 	if err != nil {
@@ -114,7 +120,7 @@ func (d *Decoded) readFrame() error {
 }
 
 // Read is io.Reader's Read.
-func (d *Decoded) Read(buf []uint8) (int, error) {
+func (d *Decoder) Read(buf []uint8) (int, error) {
 	for len(d.buf) == 0 {
 		if err := d.readFrame(); err != nil {
 			return 0, err
@@ -129,7 +135,7 @@ func (d *Decoded) Read(buf []uint8) (int, error) {
 // Seek is io.Seeker's Seek.
 //
 // Seek panics when the underlying source is not io.Seeker.
-func (d *Decoded) Seek(offset int64, whence int) (int64, error) {
+func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	s, ok := d.source.reader.(io.Seeker)
 	if !ok {
 		panic("mp3: d.reader must be io.Seeker")
@@ -176,14 +182,14 @@ func (d *Decoded) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Close is io.Closer's Close.
-func (d *Decoded) Close() error {
+func (d *Decoder) Close() error {
 	return d.source.Close()
 }
 
 // SampleRate returns the sample rate like 44100.
 //
 // Note that the sample rate is retrieved from the first frame.
-func (d *Decoded) SampleRate() int {
+func (d *Decoder) SampleRate() int {
 	return d.sampleRate
 }
 
@@ -191,22 +197,22 @@ func (d *Decoded) SampleRate() int {
 //
 // Length returns -1 when the total size is not available
 // e.g. when the given source is not io.Seeker.
-func (d *Decoded) Length() int64 {
+func (d *Decoder) Length() int64 {
 	return d.length
 }
 
-// Decode decodes the given io.ReadCloser and returns a decoded stream.
+// NewDecoder decodes the given io.ReadCloser and returns a decoded stream.
 //
 // The stream is always formatted as 16bit (little endian) 2 channels
 // even if the source is single channel MP3.
 // Thus, a sample always consists of 4 bytes.
 //
 // If r is io.Seeker, a decoded stream checks its length and Length returns a valid value.
-func Decode(r io.ReadCloser) (*Decoded, error) {
+func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 	s := &source{
 		reader: r,
 	}
-	d := &Decoded{
+	d := &Decoder{
 		source: s,
 		length: -1,
 	}
@@ -238,6 +244,12 @@ func Decode(r io.ReadCloser) (*Decoded, error) {
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
-	d.sampleRate = samplingFrequency[d.frame.header.sampling_frequency]
+	d.sampleRate = samplingFrequency[d.frame.header.SamplingFrequency()]
 	return d, nil
+}
+
+// Decode is here for compatibility purposes so as to not break the existing API. Use NewDecoder instead.
+// DEPRECATED
+func Decode(r io.ReadCloser) (*Decoder, error) {
+	return NewDecoder(r)
 }

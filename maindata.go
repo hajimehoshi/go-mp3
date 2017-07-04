@@ -41,7 +41,7 @@ func (s *source) readMainL3(prev *bits.Bits, header *mpeg1FrameHeader, sideInfo 
 	// Main data size is the rest of the frame,including ancillary data
 	main_data_size := framesize - sideinfo_size - 4 // sync+header
 	// CRC is 2 bytes
-	if header.protection_bit == 0 {
+	if header.ProtectionBit() == 0 {
 		main_data_size -= 2
 	}
 	// Assemble main data buffer with data from this frame and the previous
