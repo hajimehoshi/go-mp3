@@ -31,7 +31,7 @@ func run() error {
 	}
 	defer f.Close()
 
-	d, err := mp3.Decode(f)
+	d, err := mp3.NewDecoder(f)
 	if err != nil {
 		return err
 	}
