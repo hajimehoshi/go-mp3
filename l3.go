@@ -97,7 +97,7 @@ var (
 
 func (f *frame) l3Requantize(gr int, ch int) {
 	// Setup sampling frequency index
-	sfreq := f.header.sampling_frequency
+	sfreq := f.header.SamplingFrequency()
 	// Determine type of block to process
 	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { // Short blocks
 		// Check if the first two subbands
@@ -172,7 +172,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 func (f *frame) l3Reorder(gr int, ch int) {
 	re := make([]float32, samplesPerGr)
 
-	sfreq := f.header.sampling_frequency // Setup sampling freq index
+	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 	// Only reorder short blocks
 	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { // Short blocks
 		// Check if the first two subbands
@@ -227,7 +227,7 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 	// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
 	is_pos := f.mainData.scalefac_l[gr][0][sfb]
 	if is_pos != 7 {
-		sfreq := f.header.sampling_frequency // Setup sampling freq index
+		sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 		sfb_start := sfBandIndicesSet[sfreq].l[sfb]
 		sfb_stop := sfBandIndicesSet[sfreq].l[sfb+1]
 		if is_pos == 6 { // tan((6*PI)/12 = PI/2) needs special treatment!
@@ -248,7 +248,7 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
-	sfreq := f.header.sampling_frequency // Setup sampling freq index
+	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 	// The window length
 	win_len := sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
 	// The three windows within the band has different scalefactors
@@ -277,11 +277,11 @@ func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 
 func (f *frame) l3Stereo(gr int) {
 	// Do nothing if joint stereo is not enabled
-	if (f.header.mode != 1) || (f.header.mode_extension == 0) {
+	if (f.header.Mode() != 1) || (f.header.ModeExtension() == 0) {
 		return
 	}
 	// Do Middle/Side("normal") stereo processing
-	if (f.header.mode_extension & 0x2) != 0 {
+	if (f.header.ModeExtension() & 0x2) != 0 {
 		// Determine how many frequency lines to transform
 		i := 0
 		if f.sideInfo.count1[gr][0] > f.sideInfo.count1[gr][1] {
@@ -298,9 +298,9 @@ func (f *frame) l3Stereo(gr int) {
 		}
 	}
 	// Do intensity stereo processing
-	if (f.header.mode_extension & 0x1) != 0 {
+	if (f.header.ModeExtension() & 0x1) != 0 {
 		// Setup sampling frequency index
-		sfreq := f.header.sampling_frequency
+		sfreq := f.header.SamplingFrequency()
 		// First band that is intensity stereo encoded is first band scale factor
 		// band on or above count1 frequency line. N.B.: Intensity stereo coding is
 		// only done for higher subbands, but logic is here for lower subbands.

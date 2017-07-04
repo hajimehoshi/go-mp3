@@ -78,6 +78,6 @@ func TestFuzzingIssue3(t *testing.T) {
 	}
 	for _, input := range inputs {
 		b := &bytesReadCloser{bytes.NewReader([]uint8(input))}
-		_, _ = Decode(b)
+		_, _ = NewDecoder(b)
 	}
 }
