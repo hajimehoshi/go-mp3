@@ -98,7 +98,9 @@ type Decoder struct {
 
 // Decoded is the old type name for the Decoder
 // DEPRECATED
-type Decoded Decoder
+type Decoded struct {
+	*Decoder
+}
 
 func (d *Decoder) readFrame() error {
 	var err error
