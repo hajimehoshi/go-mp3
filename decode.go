@@ -75,30 +75,37 @@ func (s *source) skipTags() error {
 	if err != nil {
 		return err
 	}
-	if string(buf) != "ID3" {
+	switch string(buf) {
+	case "TAG":
+		buf := make([]uint8, 125)
+		if _, err := s.getBytes(buf); err != nil {
+			return err
+		}
+
+	case "ID3":
+		// Skip version (2 bytes) and flag (1 byte)
+		buf := make([]uint8, 3)
+		if _, err := s.getBytes(buf); err != nil {
+			return err
+		}
+
+		buf = make([]uint8, 4)
+		n, err := s.getBytes(buf)
+		if err != nil {
+			return err
+		}
+		if n != 4 {
+			return nil
+		}
+		size := (uint32(buf[0]) << 21) | (uint32(buf[1]) << 14) |
+			(uint32(buf[2]) << 7) | uint32(buf[3])
+		buf = make([]uint8, size)
+		if _, err := s.getBytes(buf); err != nil {
+			return err
+		}
+
+	default:
 		s.buf = append(s.buf, buf...)
-		return nil
-	}
-
-	// Skip version (2 bytes) and flag (1 byte)
-	buf = make([]uint8, 3)
-	if _, err := s.getBytes(buf); err != nil {
-		return err
-	}
-
-	buf = make([]uint8, 4)
-	n, err := s.getBytes(buf)
-	if err != nil {
-		return err
-	}
-	if n != 4 {
-		return nil
-	}
-	size := (uint32(buf[0]) << 21) | (uint32(buf[1]) << 14) |
-		(uint32(buf[2]) << 7) | uint32(buf[3])
-	buf = make([]uint8, size)
-	if _, err := s.getBytes(buf); err != nil {
-		return err
 	}
 
 	return nil
