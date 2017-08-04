@@ -35,7 +35,7 @@ const (
 )
 
 // A mepg1FrameHeader is MPEG1 Layer 1-3 frame header
-type mpeg1FrameHeader int
+type mpeg1FrameHeader uint32
 
 // ID returns this header's ID stored in position 20,19
 func (m mpeg1FrameHeader) ID() int {
@@ -96,6 +96,30 @@ func (m mpeg1FrameHeader) OriginalOrCopy() int {
 // Emphasis returns emphasis - the emphasis indication is here to tell the decoder that the file must be de-emphasized - stored in position 0,1
 func (m mpeg1FrameHeader) Emphasis() int {
 	return int(m&0x00000003) >> 0
+}
+
+// IsValid returns a boolean value indicating whether the header is valid or not.
+func (m mpeg1FrameHeader) IsValid() bool {
+	const C_SYNC = 0xffe00000
+	if (m & C_SYNC) != C_SYNC {
+		return false
+	}
+	if m.ID() == 1 {
+		return false
+	}
+	if m.BitrateIndex() == 15 {
+		return false
+	}
+	if m.SamplingFrequency() == 3 {
+		return false
+	}
+	if m.Layer() == mpeg1LayerReserved {
+		return false
+	}
+	if m.Emphasis() == 2 {
+		return false
+	}
+	return true
 }
 
 // A mpeg1SideInfo is  MPEG1 Layer 3 Side Information.

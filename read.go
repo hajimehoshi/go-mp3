@@ -76,22 +76,6 @@ func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err 
 	return nf, pos, nil
 }
 
-func isHeader(header uint32) bool {
-	const C_SYNC = 0xffe00000
-	if (header & C_SYNC) != C_SYNC {
-		return false
-	}
-	// Bitrate must not be 15.
-	if (header & (0xf << 12)) == 0xf<<12 {
-		return false
-	}
-	// Sample Frequency must not be 3.
-	if (header & (3 << 10)) == 3<<10 {
-		return false
-	}
-	return true
-}
-
 func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err error) {
 	// Get the next four bytes from the bitstream
 	pos := s.getFilepos()
@@ -112,7 +96,7 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 	b3 := uint32(buf[2])
 	b4 := uint32(buf[3])
 	header := (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
-	for !isHeader(uint32(header)) {
+	for !mpeg1FrameHeader(header).IsValid() {
 		// No,so scan the bitstream one byte at a time until we find it or EOF
 		// Shift the values one byte to the left
 		b1 = b2
@@ -135,26 +119,9 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 	// NewDecoder the header
 	head := mpeg1FrameHeader(header)
 
-	// Check for invalid values and impossible combinations
-	if head.ID() != 3 {
-		return nil, 0, fmt.Errorf("mp3: ID must be 3. Header word is 0x%08x at file pos %d",
-			header, s.getFilepos())
-	}
 	if head.BitrateIndex() == 0 {
 		return nil, 0, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
 			header, s.getFilepos())
-	}
-	if head.BitrateIndex() == 15 {
-		return nil, 0, fmt.Errorf("mp3: bitrate_index = 15 is invalid! Header word is 0x%08x at file pos %d",
-			header, s.getFilepos())
-	}
-	if head.SamplingFrequency() == 3 {
-		return nil, 0, fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
-			header, s.getFilepos())
-	}
-	if head.Layer() == mpeg1LayerReserved {
-		return nil, 0, fmt.Errorf("mp3: layer = %d is invalid! Header word is 0x%08x at file pos %d",
-			mpeg1LayerReserved, header, s.getFilepos())
 	}
 	return &head, pos, nil
 }
