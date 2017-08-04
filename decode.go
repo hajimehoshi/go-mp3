@@ -51,24 +51,83 @@ func (f *frame) decodeL3() []uint8 {
 
 type source struct {
 	reader io.ReadCloser
+	buf    []uint8
 	pos    int64
 }
 
+func (s *source) Seek(position int64, whence int) (int64, error) {
+	seeker, ok := s.reader.(io.Seeker)
+	if !ok {
+		panic("mp3: source must be io.Seeker")
+	}
+	s.buf = nil
+	return seeker.Seek(position, whence)
+}
+
 func (s *source) Close() error {
+	s.buf = nil
 	return s.reader.Close()
 }
 
+func (s *source) skipTags() error {
+	buf := make([]uint8, 3)
+	_, err := s.getBytes(buf)
+	if err != nil {
+		return err
+	}
+	if string(buf) != "ID3" {
+		s.buf = append(s.buf, buf...)
+		return nil
+	}
+
+	// Skip version (2 bytes) and flag (1 byte)
+	buf = make([]uint8, 3)
+	if _, err := s.getBytes(buf); err != nil {
+		return err
+	}
+
+	buf = make([]uint8, 4)
+	n, err := s.getBytes(buf)
+	if err != nil {
+		return err
+	}
+	if n != 4 {
+		return nil
+	}
+	size := (uint32(buf[0]) << 21) | (uint32(buf[1]) << 14) |
+		(uint32(buf[2]) << 7) | uint32(buf[3])
+	buf = make([]uint8, size)
+	if _, err := s.getBytes(buf); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *source) rewind() error {
-	seeker := s.reader.(io.Seeker)
-	if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+	if _, err := s.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 	s.pos = 0
+	s.buf = nil
 	return nil
 }
 
 func (s *source) getBytes(buf []uint8) (int, error) {
-	n, err := io.ReadFull(s.reader, buf)
+	read := 0
+	if s.buf != nil {
+		read = copy(buf, s.buf)
+		if len(s.buf) > read {
+			s.buf = s.buf[read:]
+		} else {
+			s.buf = nil
+		}
+		if len(buf) == read {
+			return read, nil
+		}
+	}
+
+	n, err := io.ReadFull(s.reader, buf[read:])
 	if err != nil {
 		// Allow if all data can't be read. This is common.
 		if err == io.ErrUnexpectedEOF {
@@ -80,6 +139,7 @@ func (s *source) getBytes(buf []uint8) (int, error) {
 }
 
 func (s *source) getFilepos() int64 {
+	// TODO: Known issue: s.pos is invalid after Seek.
 	return s.pos
 }
 
@@ -136,10 +196,6 @@ func (d *Decoder) Read(buf []uint8) (int, error) {
 //
 // Seek panics when the underlying source is not io.Seeker.
 func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
-	s, ok := d.source.reader.(io.Seeker)
-	if !ok {
-		panic("mp3: d.reader must be io.Seeker")
-	}
 	npos := int64(0)
 	switch whence {
 	case io.SeekStart:
@@ -159,7 +215,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	// because the previous frame can affect the targeted frame.
 	if f > 0 {
 		f--
-		if _, err := s.Seek(d.frameStarts[f], 0); err != nil {
+		if _, err := d.Seek(d.frameStarts[f], 0); err != nil {
 			return 0, err
 		}
 		if err := d.readFrame(); err != nil {
@@ -170,7 +226,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 		}
 		d.buf = d.buf[bytesPerFrame+(d.pos%bytesPerFrame):]
 	} else {
-		if _, err := s.Seek(d.frameStarts[f], 0); err != nil {
+		if _, err := d.Seek(d.frameStarts[f], 0); err != nil {
 			return 0, err
 		}
 		if err := d.readFrame(); err != nil {
@@ -216,6 +272,9 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		source: s,
 		length: -1,
 	}
+	if err := s.skipTags(); err != nil {
+		return nil, err
+	}
 	if _, ok := r.(io.Seeker); ok {
 		l := int64(0)
 		var f *frame
@@ -237,6 +296,9 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 			l += bytesPerFrame
 		}
 		if err := s.rewind(); err != nil {
+			return nil, err
+		}
+		if err := s.skipTags(); err != nil {
 			return nil, err
 		}
 		d.length = l
