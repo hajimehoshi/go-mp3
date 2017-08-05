@@ -222,7 +222,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	// because the previous frame can affect the targeted frame.
 	if f > 0 {
 		f--
-		if _, err := d.Seek(d.frameStarts[f], 0); err != nil {
+		if _, err := d.source.Seek(d.frameStarts[f], 0); err != nil {
 			return 0, err
 		}
 		if err := d.readFrame(); err != nil {
@@ -233,7 +233,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 		}
 		d.buf = d.buf[bytesPerFrame+(d.pos%bytesPerFrame):]
 	} else {
-		if _, err := d.Seek(d.frameStarts[f], 0); err != nil {
+		if _, err := d.source.Seek(d.frameStarts[f], 0); err != nil {
 			return 0, err
 		}
 		if err := d.readFrame(); err != nil {
