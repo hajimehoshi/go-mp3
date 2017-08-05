@@ -16,6 +16,15 @@ package mp3
 
 import "github.com/hajimehoshi/go-mp3/internal/bits"
 
+type mpeg1Version int
+
+const (
+	mpeg1Version2_5      mpeg1Version = 0
+	mpeg1VersionReserved mpeg1Version = 1
+	mpeg1Version2        mpeg1Version = 2
+	mpeg1Version1        mpeg1Version = 3
+)
+
 type mpeg1Layer int
 
 const (
@@ -38,8 +47,8 @@ const (
 type mpeg1FrameHeader uint32
 
 // ID returns this header's ID stored in position 20,19
-func (m mpeg1FrameHeader) ID() int {
-	return int((m & 0x00180000) >> 19)
+func (m mpeg1FrameHeader) ID() mpeg1Version {
+	return mpeg1Version((m & 0x00180000) >> 19)
 }
 
 // Layer returns the mpeg layer of this frame stored in position 18,17
@@ -104,7 +113,7 @@ func (m mpeg1FrameHeader) IsValid() bool {
 	if (m & C_SYNC) != C_SYNC {
 		return false
 	}
-	if m.ID() == 1 {
+	if m.ID() == mpeg1VersionReserved {
 		return false
 	}
 	if m.BitrateIndex() == 15 {
