@@ -142,7 +142,7 @@ func (s *source) getBytes(buf []uint8) (int, error) {
 		}
 	}
 	s.pos += int64(n)
-	return n, err
+	return n + read, err
 }
 
 func (s *source) getFilepos() int64 {
