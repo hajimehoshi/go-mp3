@@ -77,7 +77,7 @@ func TestFuzzingIssue3(t *testing.T) {
 			"\xff\xff\xee\xee",
 	}
 	for _, input := range inputs {
-		b := &bytesReadCloser{bytes.NewReader([]uint8(input))}
+		b := &bytesReadCloser{bytes.NewReader([]byte(input))}
 		_, _ = NewDecoder(b)
 	}
 }

@@ -15,7 +15,7 @@
 package bits
 
 type Bits struct {
-	Vec []uint8
+	Vec []byte
 	idx int
 	pos int
 }
@@ -40,7 +40,7 @@ func (b *Bits) Bits(num int) int {
 		// TODO: Should this return error?
 		return 0
 	}
-	bb := make([]uint8, 4)
+	bb := make([]byte, 4)
 	copy(bb, b.Vec[b.pos:])
 	tmp := (uint32(bb[0]) << 24) | (uint32(bb[1]) << 16) | (uint32(bb[2]) << 8) | (uint32(bb[3]) << 0)
 	tmp = tmp << uint(b.idx)

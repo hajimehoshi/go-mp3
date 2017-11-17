@@ -152,7 +152,7 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 		// No, there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
-		buf := make([]uint8, size)
+		buf := make([]byte, size)
 		n, err := s.getBytes(buf)
 		if n < size {
 			if err == io.EOF {
@@ -167,13 +167,13 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 		return m, nil
 	}
 	// Copy data from previous frames
-	vec := []uint8{}
+	vec := []byte{}
 	if prev != nil {
 		v := prev.Vec
 		vec = v[len(v)-offset:]
 	}
 	// Read the main_data from file
-	buf := make([]uint8, size)
+	buf := make([]byte, size)
 	n, err := s.getBytes(buf)
 	if n < size {
 		if err == io.EOF {

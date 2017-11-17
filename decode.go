@@ -27,8 +27,8 @@ func (u *unexpectedEOF) Error() string {
 	return fmt.Sprintf("mp3: unexpected EOF at %s", u.At)
 }
 
-func (f *frame) decodeL3() []uint8 {
-	out := make([]uint8, bytesPerFrame)
+func (f *frame) decodeL3() []byte {
+	out := make([]byte, bytesPerFrame)
 	nch := f.header.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
@@ -51,7 +51,7 @@ func (f *frame) decodeL3() []uint8 {
 
 type source struct {
 	reader io.ReadCloser
-	buf    []uint8
+	buf    []byte
 	pos    int64
 }
 
@@ -70,26 +70,26 @@ func (s *source) Close() error {
 }
 
 func (s *source) skipTags() error {
-	buf := make([]uint8, 3)
+	buf := make([]byte, 3)
 	_, err := s.getBytes(buf)
 	if err != nil {
 		return err
 	}
 	switch string(buf) {
 	case "TAG":
-		buf := make([]uint8, 125)
+		buf := make([]byte, 125)
 		if _, err := s.getBytes(buf); err != nil {
 			return err
 		}
 
 	case "ID3":
 		// Skip version (2 bytes) and flag (1 byte)
-		buf := make([]uint8, 3)
+		buf := make([]byte, 3)
 		if _, err := s.getBytes(buf); err != nil {
 			return err
 		}
 
-		buf = make([]uint8, 4)
+		buf = make([]byte, 4)
 		n, err := s.getBytes(buf)
 		if err != nil {
 			return err
@@ -99,7 +99,7 @@ func (s *source) skipTags() error {
 		}
 		size := (uint32(buf[0]) << 21) | (uint32(buf[1]) << 14) |
 			(uint32(buf[2]) << 7) | uint32(buf[3])
-		buf = make([]uint8, size)
+		buf = make([]byte, size)
 		if _, err := s.getBytes(buf); err != nil {
 			return err
 		}
@@ -120,7 +120,7 @@ func (s *source) rewind() error {
 	return nil
 }
 
-func (s *source) getBytes(buf []uint8) (int, error) {
+func (s *source) getBytes(buf []byte) (int, error) {
 	read := 0
 	if s.buf != nil {
 		read = copy(buf, s.buf)
@@ -158,7 +158,7 @@ type Decoder struct {
 	sampleRate  int
 	length      int64
 	frameStarts []int64
-	buf         []uint8
+	buf         []byte
 	frame       *frame
 	pos         int64
 }
@@ -187,7 +187,7 @@ func (d *Decoder) readFrame() error {
 }
 
 // Read is io.Reader's Read.
-func (d *Decoder) Read(buf []uint8) (int, error) {
+func (d *Decoder) Read(buf []byte) (int, error) {
 	for len(d.buf) == 0 {
 		if err := d.readFrame(); err != nil {
 			return 0, err

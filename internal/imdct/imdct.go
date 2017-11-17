@@ -81,7 +81,7 @@ func init() {
 func Win(in []float32, blockType int) []float32 {
 	out := make([]float32, 36)
 	if blockType == 2 {
-		N := 12
+		const N = 12
 		for i := 0; i < 3; i++ {
 			for p := 0; p < N; p++ {
 				sum := float32(0.0)
@@ -93,7 +93,7 @@ func Win(in []float32, blockType int) []float32 {
 		}
 		return out
 	}
-	N := 36
+	const N = 36
 	for p := 0; p < N; p++ {
 		sum := float32(0.0)
 		for m := 0; m < N/2; m++ {

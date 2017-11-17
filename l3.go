@@ -548,7 +548,7 @@ var synthDtbl = [512]float32{
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
 
-func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
+func (f *frame) l3SubbandSynthesis(gr int, ch int, out []byte) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
@@ -593,18 +593,18 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 			s := uint32(samp)
 			if nch == 1 {
 				// We always run in stereo mode and duplicate channels here for mono.
-				out[4*(32*ss+i)] = uint8(s)
-				out[4*(32*ss+i)+1] = uint8(s >> 8)
-				out[4*(32*ss+i)+2] = uint8(s)
-				out[4*(32*ss+i)+3] = uint8(s >> 8)
+				out[4*(32*ss+i)] = byte(s)
+				out[4*(32*ss+i)+1] = byte(s >> 8)
+				out[4*(32*ss+i)+2] = byte(s)
+				out[4*(32*ss+i)+3] = byte(s >> 8)
 				continue
 			}
 			if ch == 0 {
-				out[4*(32*ss+i)] = uint8(s)
-				out[4*(32*ss+i)+1] = uint8(s >> 8)
+				out[4*(32*ss+i)] = byte(s)
+				out[4*(32*ss+i)+1] = byte(s >> 8)
 			} else {
-				out[4*(32*ss+i)+2] = uint8(s)
-				out[4*(32*ss+i)+3] = uint8(s >> 8)
+				out[4*(32*ss+i)+2] = byte(s)
+				out[4*(32*ss+i)+3] = byte(s >> 8)
 			}
 		}
 	}

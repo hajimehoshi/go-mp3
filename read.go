@@ -22,7 +22,7 @@ import (
 )
 
 func (s *source) readCRC() error {
-	buf := make([]uint8, 2)
+	buf := make([]byte, 2)
 	n, err := s.getBytes(buf)
 	if n < 2 {
 		if err == io.EOF {
@@ -82,7 +82,7 @@ func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err 
 func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err error) {
 	// Get the next four bytes from the bitstream
 	pos := s.getFilepos()
-	buf := make([]uint8, 4)
+	buf := make([]byte, 4)
 	n, err := s.getBytes(buf)
 	if n < 4 {
 		if err == io.EOF {
@@ -106,7 +106,7 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 		b2 = b3
 		b3 = b4
 		// Get one new byte from the bitstream
-		buf := make([]uint8, 1)
+		buf := make([]byte, 1)
 		if _, err := s.getBytes(buf); err != nil {
 			if err == io.EOF {
 				return nil, 0, &unexpectedEOF{"readHeader (2)"}
