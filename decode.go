@@ -163,12 +163,6 @@ type Decoder struct {
 	pos         int64
 }
 
-// Decoded is the old type name for the Decoder
-// DEPRECATED
-type Decoded struct {
-	*Decoder
-}
-
 func (d *Decoder) readFrame() error {
 	var err error
 	d.frame, _, err = d.source.readNextFrame(d.frame)
@@ -315,10 +309,4 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 	}
 	d.sampleRate = samplingFrequency[d.frame.header.SamplingFrequency()]
 	return d, nil
-}
-
-// Decode is here for compatibility purposes so as to not break the existing API. Use NewDecoder instead.
-// DEPRECATED
-func Decode(r io.ReadCloser) (*Decoder, error) {
-	return NewDecoder(r)
 }
