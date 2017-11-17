@@ -111,7 +111,5 @@ func (s *source) getSideinfo(size int) (*bits.Bits, error) {
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes: %v",
 			size, err)
 	}
-	return &bits.Bits{
-		Vec: buf,
-	}, nil
+	return bits.New(buf), nil
 }

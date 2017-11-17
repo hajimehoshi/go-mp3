@@ -15,20 +15,30 @@
 package bits
 
 type Bits struct {
-	Vec []byte
-	idx int
-	pos int
+	vec     []byte
+	bitPos  int
+	bytePos int
+}
+
+func New(vec []byte) *Bits {
+	return &Bits{
+		vec: vec,
+	}
+}
+
+func Append(bits *Bits, buf []byte) *Bits {
+	return New(append(bits.vec, buf...))
 }
 
 func (b *Bits) Bit() int {
-	if len(b.Vec) <= b.pos {
+	if len(b.vec) <= b.bytePos {
 		// TODO: Should this return error?
 		return 0
 	}
-	tmp := uint(b.Vec[b.pos]) >> (7 - uint(b.idx))
+	tmp := uint(b.vec[b.bytePos]) >> (7 - uint(b.bitPos))
 	tmp &= 0x01
-	b.pos += (b.idx + 1) >> 3
-	b.idx = (b.idx + 1) & 0x07
+	b.bytePos += (b.bitPos + 1) >> 3
+	b.bitPos = (b.bitPos + 1) & 0x07
 	return int(tmp)
 }
 
@@ -36,28 +46,33 @@ func (b *Bits) Bits(num int) int {
 	if num == 0 {
 		return 0
 	}
-	if len(b.Vec) <= b.pos {
+	if len(b.vec) <= b.bytePos {
 		// TODO: Should this return error?
 		return 0
 	}
 	bb := make([]byte, 4)
-	copy(bb, b.Vec[b.pos:])
+	copy(bb, b.vec[b.bytePos:])
 	tmp := (uint32(bb[0]) << 24) | (uint32(bb[1]) << 16) | (uint32(bb[2]) << 8) | (uint32(bb[3]) << 0)
-	tmp = tmp << uint(b.idx)
+	tmp = tmp << uint(b.bitPos)
 	tmp = tmp >> (32 - uint(num))
-	b.pos += (b.idx + num) >> 3
-	b.idx = (b.idx + num) & 0x07
+	b.bytePos += (b.bitPos + num) >> 3
+	b.bitPos = (b.bitPos + num) & 0x07
 	return int(tmp)
 }
 
-func (b *Bits) Pos() int {
-	pos := b.pos
-	pos *= 8 // Multiply by 8 to get number of bits
-	pos += b.idx
-	return pos
+func (b *Bits) BitPos() int {
+	return b.bytePos << 3 + b.bitPos
 }
 
-func (b *Bits) SetPos(bit_pos int) {
-	b.pos = bit_pos >> 3
-	b.idx = bit_pos & 0x7
+func (b *Bits) SetPos(pos int) {
+	b.bytePos = pos >> 3
+	b.bitPos = pos & 0x7
+}
+
+func (b *Bits) LenInBytes() int {
+	return len(b.vec)
+}
+
+func (b *Bits) Tail(offset int) []byte {
+	return b.vec[len(b.vec)-offset:]
 }

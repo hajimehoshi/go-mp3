@@ -56,7 +56,7 @@ func (s *source) readMainL3(prev *bits.Bits, header *mpeg1FrameHeader, sideInfo 
 	md := &mpeg1MainData{}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			part_2_start := m.Pos()
+			part_2_start := m.BitPos()
 			// Number of bits in the bitstream for the bands
 			slen1 := mpeg1ScalefacSizes[sideInfo.scalefac_compress[gr][ch]][0]
 			slen2 := mpeg1ScalefacSizes[sideInfo.scalefac_compress[gr][ch]][1]
@@ -148,7 +148,7 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 		return nil, fmt.Errorf("mp3: size = %d", size)
 	}
 	// Check that there's data available from previous frames if needed
-	if prev != nil && offset > len(prev.Vec) {
+	if prev != nil && offset > prev.LenInBytes() {
 		// No, there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
@@ -160,17 +160,13 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 			}
 			return nil, err
 		}
-		m := &bits.Bits{
-			Vec: append(prev.Vec, buf...),
-		}
 		// TODO: Define a special error and enable to continue the next frame.
-		return m, nil
+		return bits.Append(prev, buf), nil
 	}
 	// Copy data from previous frames
 	vec := []byte{}
 	if prev != nil {
-		v := prev.Vec
-		vec = v[len(v)-offset:]
+		vec = prev.Tail(offset)
 	}
 	// Read the main_data from file
 	buf := make([]byte, size)
@@ -181,8 +177,6 @@ func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits,
 		}
 		return nil, err
 	}
-	m := &bits.Bits{
-		Vec: append(vec, buf...),
-	}
+	m := bits.New(append(vec, buf...))
 	return m, nil
 }

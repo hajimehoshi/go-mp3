@@ -184,7 +184,7 @@ func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo
 	// Read small values until is_pos = 576 or we run out of huffman data
 	table_num := sideInfo.count1table_select[gr][ch] + 32
 	is_pos := sideInfo.big_values[gr][ch] * 2
-	for (is_pos <= 572) && (m.Pos() <= bit_pos_end) {
+	for is_pos <= 572 && m.BitPos() <= bit_pos_end {
 		// Get next Huffman coded words
 		x, y, v, w, err := huffmanDecode(m, table_num)
 		if err != nil {
@@ -209,7 +209,7 @@ func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo
 		is_pos++
 	}
 	// Check that we didn't read past the end of this section
-	if m.Pos() > (bit_pos_end + 1) {
+	if m.BitPos() > (bit_pos_end + 1) {
 		// Remove last words read
 		is_pos -= 4
 	}
