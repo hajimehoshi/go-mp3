@@ -160,7 +160,7 @@ func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err 
 		return nil, 0, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported", consts.Layer3, h.Layer())
 	}
 	// Get side info
-	si, err := s.readSideInfo(h)
+	si, err := sideinfo.Read(s, h)
 	if err != nil {
 		return nil, 0, err
 	}
