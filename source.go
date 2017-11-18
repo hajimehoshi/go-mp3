@@ -131,10 +131,6 @@ func (s *source) ReadFull(buf []byte) (int, error) {
 	return n + read, err
 }
 
-func (s *source) getFilepos() int64 {
-	return s.pos
-}
-
 func (s *source) readCRC() error {
 	buf := make([]byte, 2)
 	n, err := s.ReadFull(buf)
@@ -186,7 +182,7 @@ func (s *source) readNextFrame(prev *frame.Frame) (f *frame.Frame, startPosition
 
 func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, err error) {
 	// Get the next four bytes from the bitstream
-	pos := s.getFilepos()
+	pos := s.pos
 	buf := make([]byte, 4)
 	n, err := s.ReadFull(buf)
 	if n < 4 {
@@ -229,7 +225,7 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 
 	if head.BitrateIndex() == 0 {
 		return 0, 0, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
-			header, s.getFilepos())
+			header, s.pos)
 	}
 	return head, pos, nil
 }
