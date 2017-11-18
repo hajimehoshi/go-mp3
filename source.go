@@ -21,6 +21,111 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 )
 
+type source struct {
+	reader io.ReadCloser
+	buf    []byte
+	pos    int64
+}
+
+func (s *source) Seek(position int64, whence int) (int64, error) {
+	seeker, ok := s.reader.(io.Seeker)
+	if !ok {
+		panic("mp3: source must be io.Seeker")
+	}
+	s.buf = nil
+	return seeker.Seek(position, whence)
+}
+
+func (s *source) Close() error {
+	s.buf = nil
+	return s.reader.Close()
+}
+
+func (s *source) skipTags() error {
+	buf := make([]byte, 3)
+	if _, err := s.ReadFull(buf); err != nil {
+		return err
+	}
+	switch string(buf) {
+	case "TAG":
+		buf := make([]byte, 125)
+		if _, err := s.ReadFull(buf); err != nil {
+			return err
+		}
+
+	case "ID3":
+		// Skip version (2 bytes) and flag (1 byte)
+		buf := make([]byte, 3)
+		if _, err := s.ReadFull(buf); err != nil {
+			return err
+		}
+
+		buf = make([]byte, 4)
+		n, err := s.ReadFull(buf)
+		if err != nil {
+			return err
+		}
+		if n != 4 {
+			return nil
+		}
+		size := (uint32(buf[0]) << 21) | (uint32(buf[1]) << 14) |
+			(uint32(buf[2]) << 7) | uint32(buf[3])
+		buf = make([]byte, size)
+		if _, err := s.ReadFull(buf); err != nil {
+			return err
+		}
+
+	default:
+		s.Unread(buf)
+	}
+
+	return nil
+}
+
+func (s *source) rewind() error {
+	if _, err := s.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	s.pos = 0
+	s.buf = nil
+	return nil
+}
+
+func (s *source) Unread(buf []byte) {
+	s.buf = append(s.buf, buf...)
+	s.pos -= int64(len(buf))
+}
+
+func (s *source) ReadFull(buf []byte) (int, error) {
+	read := 0
+	if s.buf != nil {
+		read = copy(buf, s.buf)
+		if len(s.buf) > read {
+			s.buf = s.buf[read:]
+		} else {
+			s.buf = nil
+		}
+		if len(buf) == read {
+			return read, nil
+		}
+	}
+
+	n, err := io.ReadFull(s.reader, buf[read:])
+	if err != nil {
+		// Allow if all data can't be read. This is common.
+		if err == io.ErrUnexpectedEOF {
+			err = io.EOF
+		}
+	}
+	s.pos += int64(n)
+	return n + read, err
+}
+
+func (s *source) getFilepos() int64 {
+	// TODO: Known issue: s.pos is invalid after Seek.
+	return s.pos
+}
+
 func (s *source) readCRC() error {
 	buf := make([]byte, 2)
 	n, err := s.ReadFull(buf)
