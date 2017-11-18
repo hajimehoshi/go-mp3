@@ -103,7 +103,7 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 
 func (s *source) getSideinfo(size int) (*bits.Bits, error) {
 	buf := make([]byte, size)
-	n, err := s.getBytes(buf)
+	n, err := s.ReadFull(buf)
 	if n < size {
 		if err == io.EOF {
 			return nil, &unexpectedEOF{"getSideinfo"}

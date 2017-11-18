@@ -27,28 +27,6 @@ func (u *unexpectedEOF) Error() string {
 	return fmt.Sprintf("mp3: unexpected EOF at %s", u.At)
 }
 
-func (f *frame) decodeL3() []byte {
-	out := make([]byte, bytesPerFrame)
-	nch := f.header.numberOfChannels()
-	for gr := 0; gr < 2; gr++ {
-		for ch := 0; ch < nch; ch++ {
-			f.l3Requantize(gr, ch)
-			// Reorder short blocks
-			f.l3Reorder(gr, ch)
-		}
-		f.l3Stereo(gr)
-		for ch := 0; ch < nch; ch++ {
-			f.l3Antialias(gr, ch)
-			// (IMDCT,windowing,overlapp add)
-			f.l3HybridSynthesis(gr, ch)
-			f.l3FrequencyInversion(gr, ch)
-			// Polyphase subband synthesis
-			f.l3SubbandSynthesis(gr, ch, out[samplesPerGr*4*gr:])
-		}
-	}
-	return out
-}
-
 type source struct {
 	reader io.ReadCloser
 	buf    []byte
@@ -71,26 +49,25 @@ func (s *source) Close() error {
 
 func (s *source) skipTags() error {
 	buf := make([]byte, 3)
-	_, err := s.getBytes(buf)
-	if err != nil {
+	if _, err := s.ReadFull(buf); err != nil {
 		return err
 	}
 	switch string(buf) {
 	case "TAG":
 		buf := make([]byte, 125)
-		if _, err := s.getBytes(buf); err != nil {
+		if _, err := s.ReadFull(buf); err != nil {
 			return err
 		}
 
 	case "ID3":
 		// Skip version (2 bytes) and flag (1 byte)
 		buf := make([]byte, 3)
-		if _, err := s.getBytes(buf); err != nil {
+		if _, err := s.ReadFull(buf); err != nil {
 			return err
 		}
 
 		buf = make([]byte, 4)
-		n, err := s.getBytes(buf)
+		n, err := s.ReadFull(buf)
 		if err != nil {
 			return err
 		}
@@ -100,7 +77,7 @@ func (s *source) skipTags() error {
 		size := (uint32(buf[0]) << 21) | (uint32(buf[1]) << 14) |
 			(uint32(buf[2]) << 7) | uint32(buf[3])
 		buf = make([]byte, size)
-		if _, err := s.getBytes(buf); err != nil {
+		if _, err := s.ReadFull(buf); err != nil {
 			return err
 		}
 
@@ -120,7 +97,7 @@ func (s *source) rewind() error {
 	return nil
 }
 
-func (s *source) getBytes(buf []byte) (int, error) {
+func (s *source) ReadFull(buf []byte) (int, error) {
 	read := 0
 	if s.buf != nil {
 		read = copy(buf, s.buf)
@@ -307,6 +284,6 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
-	d.sampleRate = samplingFrequency[d.frame.header.SamplingFrequency()]
+	d.sampleRate = samplingFrequency(d.frame.header.SamplingFrequency())
 	return d, nil
 }

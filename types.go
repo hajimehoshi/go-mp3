@@ -14,8 +14,6 @@
 
 package mp3
 
-import "github.com/hajimehoshi/go-mp3/internal/bits"
-
 type mpeg1Version int
 
 const (
@@ -109,8 +107,8 @@ func (m mpeg1FrameHeader) Emphasis() int {
 
 // IsValid returns a boolean value indicating whether the header is valid or not.
 func (m mpeg1FrameHeader) IsValid() bool {
-	const C_SYNC = 0xffe00000
-	if (m & C_SYNC) != C_SYNC {
+	const sync = 0xffe00000
+	if (m & sync) != sync {
 		return false
 	}
 	if m.ID() == mpeg1VersionReserved {
@@ -164,16 +162,6 @@ type mpeg1MainData struct {
 	is         [2][2][576]float32 // Huffman coded freq. lines
 }
 
-type frame struct {
-	header   *mpeg1FrameHeader
-	sideInfo *mpeg1SideInfo
-	mainData *mpeg1MainData
-
-	mainDataBytes *bits.Bits
-	store         [2][32][18]float32
-	v_vec         [2][1024]float32
-}
-
 var mpeg1Bitrates = map[mpeg1Layer][15]int{
 	mpeg1Layer1: {
 		0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
@@ -189,11 +177,40 @@ var mpeg1Bitrates = map[mpeg1Layer][15]int{
 	},
 }
 
-var samplingFrequency = []int{44100, 48000, 32000}
+func bitrate(layer mpeg1Layer, index int) int {
+	switch layer {
+	case mpeg1Layer1:
+		return []int{
+			0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
+			256000, 288000, 320000, 352000, 384000, 416000, 448000}[index]
+	case mpeg1Layer2:
+		return []int{
+			0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
+			128000, 160000, 192000, 224000, 256000, 320000, 384000}[index]
+	case mpeg1Layer3:
+		return []int{
+			0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
+			112000, 128000, 160000, 192000, 224000, 256000, 320000}[index]
+	}
+	panic("not reached")
+}
+
+func samplingFrequency(index int) int {
+	// TODO: Other layers?
+	switch index {
+	case 0:
+		return 44100
+	case 1:
+		return 48000
+	case  2:
+		return 32000
+	}
+	panic("not reached")
+}
 
 func (h *mpeg1FrameHeader) frameSize() int {
-	return (144*mpeg1Bitrates[h.Layer()][h.BitrateIndex()])/
-		samplingFrequency[h.SamplingFrequency()] +
+	return (144*bitrate(h.Layer(), h.BitrateIndex()))/
+		samplingFrequency(h.SamplingFrequency()) +
 		int(h.PaddingBit())
 }
 

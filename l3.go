@@ -17,6 +17,7 @@ package mp3
 import (
 	"math"
 
+	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/imdct"
 )
 
@@ -29,6 +30,38 @@ func init() {
 	for i := range powtab34 {
 		powtab34[i] = math.Pow(float64(i), 4.0/3.0)
 	}
+}
+
+type frame struct {
+	header   *mpeg1FrameHeader
+	sideInfo *mpeg1SideInfo
+	mainData *mpeg1MainData
+
+	mainDataBytes *bits.Bits
+	store         [2][32][18]float32
+	v_vec         [2][1024]float32
+}
+
+func (f *frame) decodeL3() []byte {
+	out := make([]byte, bytesPerFrame)
+	nch := f.header.numberOfChannels()
+	for gr := 0; gr < 2; gr++ {
+		for ch := 0; ch < nch; ch++ {
+			f.l3Requantize(gr, ch)
+			// Reorder short blocks
+			f.l3Reorder(gr, ch)
+		}
+		f.l3Stereo(gr)
+		for ch := 0; ch < nch; ch++ {
+			f.l3Antialias(gr, ch)
+			// (IMDCT,windowing,overlapp add)
+			f.l3HybridSynthesis(gr, ch)
+			f.l3FrequencyInversion(gr, ch)
+			// Polyphase subband synthesis
+			f.l3SubbandSynthesis(gr, ch, out[samplesPerGr*4*gr:])
+		}
+	}
+	return out
 }
 
 func (f *frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
