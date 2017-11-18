@@ -45,3 +45,23 @@ const (
 	SamplesPerGr  = 576
 	BytesPerFrame = SamplesPerGr * 2 * 4
 )
+
+type SamplingFrequency int
+
+const (
+	SamplingFrequency44100 = 0
+	SamplingFrequency48000 = 1
+	SamplingFrequency32000 = 2
+)
+
+func (s SamplingFrequency) Int() int {
+	switch s {
+	case SamplingFrequency44100:
+		return 44100
+	case SamplingFrequency48000:
+		return 48000
+	case SamplingFrequency32000:
+		return 32000
+	}
+	panic("not reahed")
+}

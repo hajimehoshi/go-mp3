@@ -187,6 +187,6 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
-	d.sampleRate = samplingFrequency(d.frame.header.SamplingFrequency())
+	d.sampleRate = d.frame.header.SamplingFrequency().Int()
 	return d, nil
 }

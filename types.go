@@ -42,8 +42,8 @@ func (m mpeg1FrameHeader) BitrateIndex() int {
 }
 
 // SamplingFrequency returns the SamplingFrequency in Hz stored in position 11,10
-func (m mpeg1FrameHeader) SamplingFrequency() int {
-	return int(m&0x00000c00) >> 10
+func (m mpeg1FrameHeader) SamplingFrequency() consts.SamplingFrequency {
+	return consts.SamplingFrequency(int(m&0x00000c00) >> 10)
 }
 
 // PaddingBit returns the padding bit stored in position 9
@@ -172,22 +172,9 @@ func bitrate(layer consts.Layer, index int) int {
 	panic("not reached")
 }
 
-func samplingFrequency(index int) int {
-	// TODO: Other layers?
-	switch index {
-	case 0:
-		return 44100
-	case 1:
-		return 48000
-	case 2:
-		return 32000
-	}
-	panic("not reached")
-}
-
 func (h mpeg1FrameHeader) frameSize() int {
 	return (144*bitrate(h.Layer(), h.BitrateIndex()))/
-		samplingFrequency(h.SamplingFrequency()) +
+		h.SamplingFrequency().Int() +
 		int(h.PaddingBit())
 }
 
