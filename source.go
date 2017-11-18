@@ -148,23 +148,25 @@ func (s *source) readNextFrame(prev *frame.Frame) (f *frame.Frame, startPosition
 	if err != nil {
 		return nil, 0, err
 	}
-	// Get CRC word if present
+
 	if h.ProtectionBit() == 0 {
 		if err := s.readCRC(); err != nil {
 			return nil, 0, err
 		}
 	}
+
 	if h.ID() != consts.Version1 {
 		return nil, 0, fmt.Errorf("mp3: only MPEG version 1 (want %d; got %d) is supported", consts.Version1, h.ID())
 	}
 	if h.Layer() != consts.Layer3 {
 		return nil, 0, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported", consts.Layer3, h.Layer())
 	}
-	// Get side info
+
 	si, err := sideinfo.Read(s, h)
 	if err != nil {
 		return nil, 0, err
 	}
+
 	// If there's not enough main data in the bit reservoir,
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)
