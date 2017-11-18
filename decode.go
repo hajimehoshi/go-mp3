@@ -82,7 +82,7 @@ func (s *source) skipTags() error {
 		}
 
 	default:
-		s.buf = append(s.buf, buf...)
+		s.Unread(buf)
 	}
 
 	return nil
@@ -95,6 +95,11 @@ func (s *source) rewind() error {
 	s.pos = 0
 	s.buf = nil
 	return nil
+}
+
+func (s *source) Unread(buf []byte) {
+	s.buf = append(s.buf, buf...)
+	s.pos -= int64(len(buf))
 }
 
 func (s *source) ReadFull(buf []byte) (int, error) {
@@ -250,10 +255,10 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		source: s,
 		length: -1,
 	}
-	if err := s.skipTags(); err != nil {
-		return nil, err
-	}
 	if _, ok := r.(io.Seeker); ok {
+		if err := s.skipTags(); err != nil {
+			return nil, err
+		}
 		l := int64(0)
 		var f *frame
 		for {
@@ -276,11 +281,12 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		if err := s.rewind(); err != nil {
 			return nil, err
 		}
-		if err := s.skipTags(); err != nil {
-			return nil, err
-		}
 		d.length = l
 	}
+	if err := s.skipTags(); err != nil {
+		return nil, err
+	}
+	// TODO: Is readFrame here really needed?
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
