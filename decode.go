@@ -37,7 +37,7 @@ type Decoder struct {
 
 func (d *Decoder) readFrame() error {
 	var err error
-	d.frame, _, err = d.source.readNextFrame(d.frame)
+	d.frame, _, err = frame.Read(d.source, d.source.pos, d.frame)
 	if err != nil {
 		if err == io.EOF {
 			return io.EOF
@@ -154,7 +154,7 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		for {
 			var err error
 			pos := int64(0)
-			f, pos, err = s.readNextFrame(f)
+			f, pos, err = frame.Read(s, s.pos, f)
 			if err != nil {
 				if err == io.EOF {
 					break

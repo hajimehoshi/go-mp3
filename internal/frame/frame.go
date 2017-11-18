@@ -15,6 +15,8 @@
 package frame
 
 import (
+	"fmt"
+	"io"
 	"math"
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
@@ -46,18 +48,67 @@ type Frame struct {
 	v_vec        [2][1024]float32
 }
 
-func New(header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo, mainData *maindata.MainData, mainDataBits *bits.Bits, prev *Frame) *Frame {
-	f := &Frame{
-		header:       header,
-		sideInfo:     sideInfo,
-		mainData:     mainData,
-		mainDataBits: mainDataBits,
+type FullReader interface {
+	ReadFull([]byte) (int, error)
+}
+
+func readCRC(source FullReader) error {
+	buf := make([]byte, 2)
+	if n, err := source.ReadFull(buf); n < 2 {
+		if err == io.EOF {
+			return &consts.UnexpectedEOF{"readCRC"}
+		}
+		return fmt.Errorf("mp3: error at readCRC: %v", err)
+	}
+	return nil
+}
+
+func Read(source FullReader, position int64, prev *Frame) (frame *Frame, startPosition int64, err error) {
+	h, pos, err := frameheader.Read(source, position)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if h.ProtectionBit() == 0 {
+		if err := readCRC(source); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	if h.ID() != consts.Version1 {
+		return nil, 0, fmt.Errorf("mp3: only MPEG version 1 (want %d; got %d) is supported", consts.Version1, h.ID())
+	}
+	if h.Layer() != consts.Layer3 {
+		return nil, 0, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported", consts.Layer3, h.Layer())
+	}
+
+	si, err := sideinfo.Read(source, h)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// If there's not enough main data in the bit reservoir,
+	// signal to calling function so that decoding isn't done!
+	// Get main data (scalefactors and Huffman coded frequency data)
+	var prevM *bits.Bits
+	if prev != nil {
+		prevM = prev.MainDataBits()
+	}
+	md, mdb, err := maindata.Read(source, prevM, h, si)
+	if err != nil {
+		return nil, 0, err
+	}
+	nf := &Frame{
+		header:       h,
+		sideInfo:     si,
+		mainData:     md,
+		mainDataBits: mdb,
 	}
 	if prev != nil {
-		f.store = prev.store
-		f.v_vec = prev.v_vec
+		nf.store = prev.store
+		nf.v_vec = prev.v_vec
 	}
-	return f
+	return nf, pos, nil
 }
 
 func (f *Frame) SamplingFrequency() int {
