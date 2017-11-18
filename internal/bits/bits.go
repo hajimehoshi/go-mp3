@@ -52,9 +52,9 @@ func (b *Bits) Bits(num int) int {
 	}
 	bb := make([]byte, 4)
 	copy(bb, b.vec[b.bytePos:])
-	tmp := (uint32(bb[0]) << 24) | (uint32(bb[1]) << 16) | (uint32(bb[2]) << 8) | (uint32(bb[3]) << 0)
-	tmp = tmp << uint(b.bitPos)
-	tmp = tmp >> (32 - uint(num))
+	tmp := (uint32(bb[0]) << 24) | (uint32(bb[1]) << 16) | (uint32(bb[2]) << 8) | (uint32(bb[3]))
+	tmp <<= uint(b.bitPos)
+	tmp >>= (32 - uint(num))
 	b.bytePos += (b.bitPos + num) >> 3
 	b.bitPos = (b.bitPos + num) & 0x07
 	return int(tmp)
