@@ -150,11 +150,11 @@ func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err 
 			return nil, 0, err
 		}
 	}
-	if h.ID() != mpeg1Version1 {
-		return nil, 0, fmt.Errorf("mp3: only MPEG version 1 (want %d; got %d) is supported", mpeg1Version1, h.ID())
+	if h.ID() != consts.Version1 {
+		return nil, 0, fmt.Errorf("mp3: only MPEG version 1 (want %d; got %d) is supported", consts.Version1, h.ID())
 	}
-	if h.Layer() != mpeg1Layer3 {
-		return nil, 0, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported", mpeg1Layer3, h.Layer())
+	if h.Layer() != consts.Layer3 {
+		return nil, 0, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported", consts.Layer3, h.Layer())
 	}
 	// Get side info
 	si, err := s.readSideInfo(h)

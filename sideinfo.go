@@ -19,6 +19,7 @@ import (
 	"io"
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
+	"github.com/hajimehoshi/go-mp3/internal/consts"
 )
 
 func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
@@ -49,7 +50,7 @@ func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error
 	si := &mpeg1SideInfo{}
 	si.main_data_begin = s.Bits(9)
 	// Get private bits. Not used for anything.
-	if header.Mode() == mpeg1ModeSingleChannel {
+	if header.Mode() == consts.ModeSingleChannel {
 		si.private_bits = s.Bits(5)
 	} else {
 		si.private_bits = s.Bits(3)

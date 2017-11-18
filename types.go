@@ -14,44 +14,21 @@
 
 package mp3
 
-type mpeg1Version int
-
-const (
-	mpeg1Version2_5      mpeg1Version = 0
-	mpeg1VersionReserved mpeg1Version = 1
-	mpeg1Version2        mpeg1Version = 2
-	mpeg1Version1        mpeg1Version = 3
-)
-
-type mpeg1Layer int
-
-const (
-	mpeg1LayerReserved mpeg1Layer = 0
-	mpeg1Layer3        mpeg1Layer = 1
-	mpeg1Layer2        mpeg1Layer = 2
-	mpeg1Layer1        mpeg1Layer = 3
-)
-
-type mpeg1Mode int
-
-const (
-	mpeg1ModeStereo mpeg1Mode = iota
-	mpeg1ModeJointStereo
-	mpeg1ModeDualChannel
-	mpeg1ModeSingleChannel
+import (
+	"github.com/hajimehoshi/go-mp3/internal/consts"
 )
 
 // A mepg1FrameHeader is MPEG1 Layer 1-3 frame header
 type mpeg1FrameHeader uint32
 
 // ID returns this header's ID stored in position 20,19
-func (m mpeg1FrameHeader) ID() mpeg1Version {
-	return mpeg1Version((m & 0x00180000) >> 19)
+func (m mpeg1FrameHeader) ID() consts.Version {
+	return consts.Version((m & 0x00180000) >> 19)
 }
 
 // Layer returns the mpeg layer of this frame stored in position 18,17
-func (m mpeg1FrameHeader) Layer() mpeg1Layer {
-	return mpeg1Layer((m & 0x00060000) >> 17)
+func (m mpeg1FrameHeader) Layer() consts.Layer {
+	return consts.Layer((m & 0x00060000) >> 17)
 }
 
 // ProtectionBit returns the protection bit stored in position 16
@@ -81,8 +58,8 @@ func (m mpeg1FrameHeader) PrivateBit() int {
 }
 
 // Mode returns the channel mode, stored in position 7,6
-func (m mpeg1FrameHeader) Mode() mpeg1Mode {
-	return mpeg1Mode((m & 0x000000c0) >> 6)
+func (m mpeg1FrameHeader) Mode() consts.Mode {
+	return consts.Mode((m & 0x000000c0) >> 6)
 }
 
 // ModeExtension returns the mode_extension - for use with Joint Stereo - stored in position 4,5
@@ -111,7 +88,7 @@ func (m mpeg1FrameHeader) IsValid() bool {
 	if (m & sync) != sync {
 		return false
 	}
-	if m.ID() == mpeg1VersionReserved {
+	if m.ID() == consts.VersionReserved {
 		return false
 	}
 	if m.BitrateIndex() == 15 {
@@ -120,7 +97,7 @@ func (m mpeg1FrameHeader) IsValid() bool {
 	if m.SamplingFrequency() == 3 {
 		return false
 	}
-	if m.Layer() == mpeg1LayerReserved {
+	if m.Layer() == consts.LayerReserved {
 		return false
 	}
 	if m.Emphasis() == 2 {
@@ -162,32 +139,32 @@ type mpeg1MainData struct {
 	is         [2][2][576]float32 // Huffman coded freq. lines
 }
 
-var mpeg1Bitrates = map[mpeg1Layer][15]int{
-	mpeg1Layer1: {
+var mpeg1Bitrates = map[consts.Layer][15]int{
+	consts.Layer1: {
 		0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
 		256000, 288000, 320000, 352000, 384000, 416000, 448000,
 	},
-	mpeg1Layer2: {
+	consts.Layer2: {
 		0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
 		128000, 160000, 192000, 224000, 256000, 320000, 384000,
 	},
-	mpeg1Layer3: {
+	consts.Layer3: {
 		0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
 		112000, 128000, 160000, 192000, 224000, 256000, 320000,
 	},
 }
 
-func bitrate(layer mpeg1Layer, index int) int {
+func bitrate(layer consts.Layer, index int) int {
 	switch layer {
-	case mpeg1Layer1:
+	case consts.Layer1:
 		return []int{
 			0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
 			256000, 288000, 320000, 352000, 384000, 416000, 448000}[index]
-	case mpeg1Layer2:
+	case consts.Layer2:
 		return []int{
 			0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
 			128000, 160000, 192000, 224000, 256000, 320000, 384000}[index]
-	case mpeg1Layer3:
+	case consts.Layer3:
 		return []int{
 			0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
 			112000, 128000, 160000, 192000, 224000, 256000, 320000}[index]
@@ -215,7 +192,7 @@ func (h *mpeg1FrameHeader) frameSize() int {
 }
 
 func (h *mpeg1FrameHeader) numberOfChannels() int {
-	if h.Mode() == mpeg1ModeSingleChannel {
+	if h.Mode() == consts.ModeSingleChannel {
 		return 1
 	}
 	return 2
