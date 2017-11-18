@@ -92,7 +92,7 @@ func Read(source FullReader, position int64, prev *Frame) (frame *Frame, startPo
 	// Get main data (scalefactors and Huffman coded frequency data)
 	var prevM *bits.Bits
 	if prev != nil {
-		prevM = prev.MainDataBits()
+		prevM = prev.mainDataBits
 	}
 	md, mdb, err := maindata.Read(source, prevM, h, si)
 	if err != nil {
@@ -113,10 +113,6 @@ func Read(source FullReader, position int64, prev *Frame) (frame *Frame, startPo
 
 func (f *Frame) SamplingFrequency() int {
 	return f.header.SamplingFrequency().Int()
-}
-
-func (f *Frame) MainDataBits() *bits.Bits {
-	return f.mainDataBits
 }
 
 func (f *Frame) Decode() []byte {
