@@ -18,8 +18,8 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
-	"github.com/hajimehoshi/go-mp3/internal/imdct"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
+	"github.com/hajimehoshi/go-mp3/internal/imdct"
 )
 
 var (

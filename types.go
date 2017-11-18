@@ -202,7 +202,7 @@ func samplingFrequency(index int) int {
 		return 44100
 	case 1:
 		return 48000
-	case  2:
+	case 2:
 		return 32000
 	}
 	panic("not reached")

@@ -61,7 +61,7 @@ func (b *Bits) Bits(num int) int {
 }
 
 func (b *Bits) BitPos() int {
-	return b.bytePos << 3 + b.bitPos
+	return b.bytePos<<3 + b.bitPos
 }
 
 func (b *Bits) SetPos(pos int) {

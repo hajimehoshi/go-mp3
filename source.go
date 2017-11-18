@@ -249,7 +249,7 @@ func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo
 	region_1_start := 0
 	region_2_start := 0
 	if (sideInfo.win_switch_flag[gr][ch] == 1) && (sideInfo.block_type[gr][ch] == 2) {
-		region_1_start = 36           // sfb[9/3]*3=36
+		region_1_start = 36                  // sfb[9/3]*3=36
 		region_2_start = consts.SamplesPerGr // No Region2 for short block case.
 	} else {
 		sfreq := header.SamplingFrequency()
