@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mp3
+package huffman
 
 import (
 	"fmt"
@@ -345,7 +345,7 @@ var huffmanMain = [...]huffTables{
 	{huffmanTable[2261:], 31, 0},   // Table 33
 }
 
-func huffmanDecode(m *bits.Bits, table_num int) (x, y, v, w int, err error) {
+func Decode(m *bits.Bits, table_num int) (x, y, v, w int, err error) {
 	point := 0
 	error := 1
 	bitsleft := 32

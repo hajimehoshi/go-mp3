@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
+	"github.com/hajimehoshi/go-mp3/internal/huffman"
 	"github.com/hajimehoshi/go-mp3/internal/maindata"
 	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
 )
@@ -281,7 +282,7 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinf
 			table_num = sideInfo.TableSelect[gr][ch][2]
 		}
 		// Get next Huffman coded words
-		x, y, _, _, err := huffmanDecode(m, table_num)
+		x, y, _, _, err := huffman.Decode(m, table_num)
 		if err != nil {
 			return err
 		}
@@ -295,7 +296,7 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinf
 	is_pos := sideInfo.BigValues[gr][ch] * 2
 	for is_pos <= 572 && m.BitPos() <= bit_pos_end {
 		// Get next Huffman coded words
-		x, y, v, w, err := huffmanDecode(m, table_num)
+		x, y, v, w, err := huffman.Decode(m, table_num)
 		if err != nil {
 			return err
 		}
