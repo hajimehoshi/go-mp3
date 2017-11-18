@@ -61,9 +61,10 @@ const (
 type SamplingFrequency int
 
 const (
-	SamplingFrequency44100 = 0
-	SamplingFrequency48000 = 1
-	SamplingFrequency32000 = 2
+	SamplingFrequency44100    SamplingFrequency = 0
+	SamplingFrequency48000    SamplingFrequency = 1
+	SamplingFrequency32000    SamplingFrequency = 2
+	SamplingFrequencyReserved SamplingFrequency = 3
 )
 
 func (s SamplingFrequency) Int() int {

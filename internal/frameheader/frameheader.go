@@ -113,7 +113,7 @@ func (f FrameHeader) IsValid() bool {
 	if f.BitrateIndex() == 15 {
 		return false
 	}
-	if f.SamplingFrequency() == 3 {
+	if f.SamplingFrequency() == consts.SamplingFrequencyReserved {
 		return false
 	}
 	if f.Layer() == consts.LayerReserved {
