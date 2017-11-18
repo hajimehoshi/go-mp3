@@ -184,8 +184,7 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 	// Get the next four bytes from the bitstream
 	pos := s.pos
 	buf := make([]byte, 4)
-	n, err := s.ReadFull(buf)
-	if n < 4 {
+	if n, err := s.ReadFull(buf); n < 4 {
 		if err == io.EOF {
 			if n == 0 {
 				// Expected EOF
@@ -224,8 +223,8 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 	head := frameheader.FrameHeader(header)
 
 	if head.BitrateIndex() == 0 {
-		return 0, 0, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
-			header, s.pos)
+		return 0, 0, fmt.Errorf("mp3: free bitrate format is not supported. Header word is 0x%08x at position %d",
+			header, pos)
 	}
 	return head, pos, nil
 }
