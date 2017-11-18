@@ -50,7 +50,7 @@ type SideInfo struct {
 	Preflag           [2][2]int // 1 bit
 	ScalefacScale     [2][2]int // 1 bit
 	Count1TableSelect [2][2]int // 1 bit
-	Count1            [2][2]int // Not in file,calc. by huff.dec.!
+	Count1            [2][2]int // Not in file, calc by huffman decoder
 }
 
 func Read(source FullReader, header frameheader.FrameHeader) (*SideInfo, error) {
@@ -117,7 +117,7 @@ func Read(source FullReader, header frameheader.FrameHeader) (*SideInfo, error) 
 				}
 
 				// TODO: This is not listed on the spec. Is this correct??
-				if (si.BlockType[gr][ch] == 2) && (si.MixedBlockFlag[gr][ch] == 0) {
+				if si.BlockType[gr][ch] == 2 && si.MixedBlockFlag[gr][ch] == 0 {
 					si.Region0Count[gr][ch] = 8 // Implicit
 				} else {
 					si.Region0Count[gr][ch] = 7 // Implicit

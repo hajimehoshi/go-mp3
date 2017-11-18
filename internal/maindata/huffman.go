@@ -25,13 +25,14 @@ import (
 )
 
 func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo, mainData *MainData, part_2_start, gr, ch int) error {
-	// Check that there is any data to decode. If not,zero the array.
+	// Check that there is any data to decode. If not, zero the array.
 	if sideInfo.Part2_3Length[gr][ch] == 0 {
-		for is_pos := 0; is_pos < consts.SamplesPerGr; is_pos++ {
-			mainData.Is[gr][ch][is_pos] = 0.0
+		for i := 0; i < consts.SamplesPerGr; i++ {
+			mainData.Is[gr][ch][i] = 0.0
 		}
 		return nil
 	}
+
 	// Calculate bit_pos_end which is the index of the last bit for this part.
 	bit_pos_end := part_2_start + sideInfo.Part2_3Length[gr][ch] - 1
 	// Determine region boundaries
@@ -109,8 +110,10 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinf
 		// Remove last words read
 		is_pos -= 4
 	}
+
 	// Setup count1 which is the index of the first sample in the rzero reg.
 	sideInfo.Count1[gr][ch] = is_pos
+
 	// Zero out the last part if necessary
 	for is_pos < consts.SamplesPerGr {
 		mainData.Is[gr][ch][is_pos] = 0.0

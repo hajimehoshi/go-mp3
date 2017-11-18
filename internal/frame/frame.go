@@ -180,7 +180,7 @@ func (f *Frame) requantize(gr int, ch int) {
 	// Setup sampling frequency index
 	sfreq := f.header.SamplingFrequency()
 	// Determine type of block to process
-	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) && (f.sideInfo.BlockType[gr][ch] == 2) { // Short blocks
+	if f.sideInfo.WinSwitchFlag[gr][ch] == 1 && f.sideInfo.BlockType[gr][ch] == 2 { // Short blocks
 		// Check if the first two subbands
 		// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
 		if f.sideInfo.MixedBlockFlag[gr][ch] != 0 { // 2 longbl. sb  first
@@ -377,6 +377,7 @@ func (f *Frame) stereo(gr int) {
 	if f.header.UseIntensityStereo() {
 		// Setup sampling frequency index
 		sfreq := f.header.SamplingFrequency()
+
 		// First band that is intensity stereo encoded is first band scale factor
 		// band on or above count1 frequency line. N.B.: Intensity stereo coding is
 		// only done for higher subbands, but logic is here for lower subbands.
