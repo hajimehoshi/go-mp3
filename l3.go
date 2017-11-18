@@ -34,7 +34,7 @@ func init() {
 }
 
 type frame struct {
-	header   *mpeg1FrameHeader
+	header   mpeg1FrameHeader
 	sideInfo *mpeg1SideInfo
 	mainData *mpeg1MainData
 

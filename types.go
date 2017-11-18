@@ -185,13 +185,13 @@ func samplingFrequency(index int) int {
 	panic("not reached")
 }
 
-func (h *mpeg1FrameHeader) frameSize() int {
+func (h mpeg1FrameHeader) frameSize() int {
 	return (144*bitrate(h.Layer(), h.BitrateIndex()))/
 		samplingFrequency(h.SamplingFrequency()) +
 		int(h.PaddingBit())
 }
 
-func (h *mpeg1FrameHeader) numberOfChannels() int {
+func (h mpeg1FrameHeader) numberOfChannels() int {
 	if h.Mode() == consts.ModeSingleChannel {
 		return 1
 	}

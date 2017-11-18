@@ -185,7 +185,7 @@ func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err 
 	return nf, pos, nil
 }
 
-func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err error) {
+func (s *source) readHeader() (h mpeg1FrameHeader, startPosition int64, err error) {
 	// Get the next four bytes from the bitstream
 	pos := s.getFilepos()
 	buf := make([]byte, 4)
@@ -194,11 +194,11 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 		if err == io.EOF {
 			if n == 0 {
 				// Expected EOF
-				return nil, 0, io.EOF
+				return 0, 0, io.EOF
 			}
-			return nil, 0, &unexpectedEOF{"readHeader (1)"}
+			return 0, 0, &unexpectedEOF{"readHeader (1)"}
 		}
-		return nil, 0, err
+		return 0, 0, err
 	}
 	b1 := uint32(buf[0])
 	b2 := uint32(buf[1])
@@ -215,9 +215,9 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 		buf := make([]byte, 1)
 		if _, err := s.ReadFull(buf); err != nil {
 			if err == io.EOF {
-				return nil, 0, &unexpectedEOF{"readHeader (2)"}
+				return 0, 0, &unexpectedEOF{"readHeader (2)"}
 			}
-			return nil, 0, err
+			return 0, 0, err
 		}
 		b4 = uint32(buf[0])
 		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
@@ -229,13 +229,13 @@ func (s *source) readHeader() (h *mpeg1FrameHeader, startPosition int64, err err
 	head := mpeg1FrameHeader(header)
 
 	if head.BitrateIndex() == 0 {
-		return nil, 0, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
+		return 0, 0, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
 			header, s.getFilepos())
 	}
-	return &head, pos, nil
+	return head, pos, nil
 }
 
-func readHuffman(m *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
+func readHuffman(m *bits.Bits, header mpeg1FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
 	// Check that there is any data to decode. If not,zero the array.
 	if sideInfo.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < consts.SamplesPerGr; is_pos++ {

@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 )
 
-func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
+func (src *source) readSideInfo(header mpeg1FrameHeader) (*mpeg1SideInfo, error) {
 	nch := header.numberOfChannels()
 	// Calculate header audio data size
 	framesize := header.frameSize()

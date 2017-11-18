@@ -26,7 +26,7 @@ var mpeg1ScalefacSizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-func (s *source) readMainL3(prev *bits.Bits, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *bits.Bits, error) {
+func (s *source) readMainL3(prev *bits.Bits, header mpeg1FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *bits.Bits, error) {
 	nch := header.numberOfChannels()
 	// Calculate header audio data size
 	framesize := header.frameSize()
