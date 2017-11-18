@@ -22,85 +22,85 @@ import (
 type FrameHeader uint32
 
 // ID returns this header's ID stored in position 20,19
-func (m FrameHeader) ID() consts.Version {
-	return consts.Version((m & 0x00180000) >> 19)
+func (f FrameHeader) ID() consts.Version {
+	return consts.Version((f & 0x00180000) >> 19)
 }
 
 // Layer returns the mpeg layer of this frame stored in position 18,17
-func (m FrameHeader) Layer() consts.Layer {
-	return consts.Layer((m & 0x00060000) >> 17)
+func (f FrameHeader) Layer() consts.Layer {
+	return consts.Layer((f & 0x00060000) >> 17)
 }
 
 // ProtectionBit returns the protection bit stored in position 16
-func (m FrameHeader) ProtectionBit() int {
-	return int(m&0x00010000) >> 16
+func (f FrameHeader) ProtectionBit() int {
+	return int(f&0x00010000) >> 16
 }
 
 // BirateIndex returns the bitrate index stored in position 15,12
-func (m FrameHeader) BitrateIndex() int {
-	return int(m&0x0000f000) >> 12
+func (f FrameHeader) BitrateIndex() int {
+	return int(f&0x0000f000) >> 12
 }
 
 // SamplingFrequency returns the SamplingFrequency in Hz stored in position 11,10
-func (m FrameHeader) SamplingFrequency() consts.SamplingFrequency {
-	return consts.SamplingFrequency(int(m&0x00000c00) >> 10)
+func (f FrameHeader) SamplingFrequency() consts.SamplingFrequency {
+	return consts.SamplingFrequency(int(f&0x00000c00) >> 10)
 }
 
 // PaddingBit returns the padding bit stored in position 9
-func (m FrameHeader) PaddingBit() int {
-	return int(m&0x00000200) >> 9
+func (f FrameHeader) PaddingBit() int {
+	return int(f&0x00000200) >> 9
 }
 
 // PrivateBit returns the private bit stored in position 8 - this bit may be used to store arbitrary data to be used
 // by an application
-func (m FrameHeader) PrivateBit() int {
-	return int(m&0x00000100) >> 8
+func (f FrameHeader) PrivateBit() int {
+	return int(f&0x00000100) >> 8
 }
 
 // Mode returns the channel mode, stored in position 7,6
-func (m FrameHeader) Mode() consts.Mode {
-	return consts.Mode((m & 0x000000c0) >> 6)
+func (f FrameHeader) Mode() consts.Mode {
+	return consts.Mode((f & 0x000000c0) >> 6)
 }
 
 // ModeExtension returns the mode_extension - for use with Joint Stereo - stored in position 4,5
-func (m FrameHeader) ModeExtension() int {
-	return int(m&0x00000030) >> 4
+func (f FrameHeader) ModeExtension() int {
+	return int(f&0x00000030) >> 4
 }
 
 // Copyright returns whether or not this recording is copywritten - stored in position 3
-func (m FrameHeader) Copyright() int {
-	return int(m&0x00000008) >> 3
+func (f FrameHeader) Copyright() int {
+	return int(f&0x00000008) >> 3
 }
 
 // OriginalOrCopy returns whether or not this is an Original recording or a copy of one - stored in position 2
-func (m FrameHeader) OriginalOrCopy() int {
-	return int(m&0x00000004) >> 2
+func (f FrameHeader) OriginalOrCopy() int {
+	return int(f&0x00000004) >> 2
 }
 
 // Emphasis returns emphasis - the emphasis indication is here to tell the decoder that the file must be de-emphasized - stored in position 0,1
-func (m FrameHeader) Emphasis() int {
-	return int(m&0x00000003) >> 0
+func (f FrameHeader) Emphasis() int {
+	return int(f&0x00000003) >> 0
 }
 
 // IsValid returns a boolean value indicating whether the header is valid or not.
-func (m FrameHeader) IsValid() bool {
+func (f FrameHeader) IsValid() bool {
 	const sync = 0xffe00000
-	if (m & sync) != sync {
+	if (f & sync) != sync {
 		return false
 	}
-	if m.ID() == consts.VersionReserved {
+	if f.ID() == consts.VersionReserved {
 		return false
 	}
-	if m.BitrateIndex() == 15 {
+	if f.BitrateIndex() == 15 {
 		return false
 	}
-	if m.SamplingFrequency() == 3 {
+	if f.SamplingFrequency() == 3 {
 		return false
 	}
-	if m.Layer() == consts.LayerReserved {
+	if f.Layer() == consts.LayerReserved {
 		return false
 	}
-	if m.Emphasis() == 2 {
+	if f.Emphasis() == 2 {
 		return false
 	}
 	return true
@@ -124,14 +124,14 @@ func bitrate(layer consts.Layer, index int) int {
 	panic("not reached")
 }
 
-func (h FrameHeader) FrameSize() int {
-	return (144*bitrate(h.Layer(), h.BitrateIndex()))/
-		h.SamplingFrequency().Int() +
-		int(h.PaddingBit())
+func (f FrameHeader) FrameSize() int {
+	return (144*bitrate(f.Layer(), f.BitrateIndex()))/
+		f.SamplingFrequency().Int() +
+		int(f.PaddingBit())
 }
 
-func (h FrameHeader) NumberOfChannels() int {
-	if h.Mode() == consts.ModeSingleChannel {
+func (f FrameHeader) NumberOfChannels() int {
+	if f.Mode() == consts.ModeSingleChannel {
 		return 1
 	}
 	return 2
