@@ -144,7 +144,7 @@ func (s *source) readCRC() error {
 }
 
 func (s *source) readNextFrame(prev *frame.Frame) (f *frame.Frame, startPosition int64, err error) {
-	h, pos, err := s.readHeader()
+	h, pos, err := frameheader.Read(s, s.pos)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -178,50 +178,4 @@ func (s *source) readNextFrame(prev *frame.Frame) (f *frame.Frame, startPosition
 	}
 	nf := frame.New(h, si, md, mdb, prev)
 	return nf, pos, nil
-}
-
-func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, err error) {
-	pos := s.pos
-	buf := make([]byte, 4)
-	if n, err := s.ReadFull(buf); n < 4 {
-		if err == io.EOF {
-			if n == 0 {
-				// Expected EOF
-				return 0, 0, io.EOF
-			}
-			return 0, 0, &consts.UnexpectedEOF{"readHeader (1)"}
-		}
-		return 0, 0, err
-	}
-
-	b1 := uint32(buf[0])
-	b2 := uint32(buf[1])
-	b3 := uint32(buf[2])
-	b4 := uint32(buf[3])
-	header := frameheader.FrameHeader((b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0))
-	for !header.IsValid() {
-		b1 = b2
-		b2 = b3
-		b3 = b4
-
-		buf := make([]byte, 1)
-		if _, err := s.ReadFull(buf); err != nil {
-			if err == io.EOF {
-				return 0, 0, &consts.UnexpectedEOF{"readHeader (2)"}
-			}
-			return 0, 0, err
-		}
-		b4 = uint32(buf[0])
-		header = frameheader.FrameHeader((b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0))
-		pos++
-	}
-
-	// If we get here we've found the sync word, and can decode the header
-	// which is in the low 20 bits of the 32-bit sync+header word.
-
-	if header.BitrateIndex() == 0 {
-		return 0, 0, fmt.Errorf("mp3: free bitrate format is not supported. Header word is 0x%08x at position %d",
-			header, pos)
-	}
-	return header, pos, nil
 }
