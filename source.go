@@ -38,7 +38,12 @@ func (s *source) Seek(position int64, whence int) (int64, error) {
 		panic("mp3: source must be io.Seeker")
 	}
 	s.buf = nil
-	return seeker.Seek(position, whence)
+	n, err := seeker.Seek(position, whence)
+	if err != nil {
+		return 0, err
+	}
+	s.pos = n
+	return n, nil
 }
 
 func (s *source) Close() error {
@@ -127,7 +132,6 @@ func (s *source) ReadFull(buf []byte) (int, error) {
 }
 
 func (s *source) getFilepos() int64 {
-	// TODO: Known issue: s.pos is invalid after Seek.
 	return s.pos
 }
 
