@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
+	"github.com/hajimehoshi/go-mp3/internal/maindata"
 )
 
 type source struct {
@@ -236,11 +237,11 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 	return head, pos, nil
 }
 
-func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
+func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo, mainData *maindata.MainData, part_2_start, gr, ch int) error {
 	// Check that there is any data to decode. If not,zero the array.
 	if sideInfo.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < consts.SamplesPerGr; is_pos++ {
-			mainData.is[gr][ch][is_pos] = 0.0
+			mainData.Is[gr][ch][is_pos] = 0.0
 		}
 		return nil
 	}
@@ -284,9 +285,9 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1Si
 			return err
 		}
 		// In the big_values area there are two freq lines per Huffman word
-		mainData.is[gr][ch][is_pos] = float32(x)
+		mainData.Is[gr][ch][is_pos] = float32(x)
 		is_pos++
-		mainData.is[gr][ch][is_pos] = float32(y)
+		mainData.Is[gr][ch][is_pos] = float32(y)
 	}
 	// Read small values until is_pos = 576 or we run out of huffman data
 	table_num := sideInfo.count1table_select[gr][ch] + 32
@@ -297,22 +298,22 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1Si
 		if err != nil {
 			return err
 		}
-		mainData.is[gr][ch][is_pos] = float32(v)
+		mainData.Is[gr][ch][is_pos] = float32(v)
 		is_pos++
 		if is_pos >= consts.SamplesPerGr {
 			break
 		}
-		mainData.is[gr][ch][is_pos] = float32(w)
+		mainData.Is[gr][ch][is_pos] = float32(w)
 		is_pos++
 		if is_pos >= consts.SamplesPerGr {
 			break
 		}
-		mainData.is[gr][ch][is_pos] = float32(x)
+		mainData.Is[gr][ch][is_pos] = float32(x)
 		is_pos++
 		if is_pos >= consts.SamplesPerGr {
 			break
 		}
-		mainData.is[gr][ch][is_pos] = float32(y)
+		mainData.Is[gr][ch][is_pos] = float32(y)
 		is_pos++
 	}
 	// Check that we didn't read past the end of this section
@@ -324,7 +325,7 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1Si
 	sideInfo.count1[gr][ch] = is_pos
 	// Zero out the last part if necessary
 	for is_pos < consts.SamplesPerGr {
-		mainData.is[gr][ch][is_pos] = 0.0
+		mainData.Is[gr][ch][is_pos] = 0.0
 		is_pos++
 	}
 	// Set the bitpos to point to the next part to read

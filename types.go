@@ -39,10 +39,3 @@ type mpeg1SideInfo struct {
 	count1table_select [2][2]int // 1 bit
 	count1             [2][2]int // Not in file,calc. by huff.dec.!
 }
-
-// A mpeg1MainData is MPEG1 Layer 3 Main Data.
-type mpeg1MainData struct {
-	scalefac_l [2][2][21]int      // 0-4 bits
-	scalefac_s [2][2][12][3]int   // 0-4 bits
-	is         [2][2][576]float32 // Huffman coded freq. lines
-}

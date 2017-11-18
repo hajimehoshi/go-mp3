@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 	"github.com/hajimehoshi/go-mp3/internal/imdct"
+	"github.com/hajimehoshi/go-mp3/internal/maindata"
 )
 
 var (
@@ -37,7 +38,7 @@ func init() {
 type frame struct {
 	header   frameheader.FrameHeader
 	sideInfo *mpeg1SideInfo
-	mainData *mpeg1MainData
+	mainData *maindata.MainData
 
 	mainDataBytes *bits.Bits
 	store         [2][32][18]float32
@@ -75,16 +76,16 @@ func (f *frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 21 {
 		pf_x_pt := float64(f.sideInfo.preflag[gr][ch]) * pretab[sfb]
-		tmp1 = math.Pow(2.0, -(sf_mult * (float64(f.mainData.scalefac_l[gr][ch][sfb]) + pf_x_pt)))
+		tmp1 = math.Pow(2.0, -(sf_mult * (float64(f.mainData.ScalefacL[gr][ch][sfb]) + pf_x_pt)))
 	}
 	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.global_gain[gr][ch])-210))
 	tmp3 := 0.0
-	if f.mainData.is[gr][ch][is_pos] < 0.0 {
-		tmp3 = -powtab34[int(-f.mainData.is[gr][ch][is_pos])]
+	if f.mainData.Is[gr][ch][is_pos] < 0.0 {
+		tmp3 = -powtab34[int(-f.mainData.Is[gr][ch][is_pos])]
 	} else {
-		tmp3 = powtab34[int(f.mainData.is[gr][ch][is_pos])]
+		tmp3 = powtab34[int(f.mainData.Is[gr][ch][is_pos])]
 	}
-	f.mainData.is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
+	f.mainData.Is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
 }
 
 func (f *frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
@@ -95,17 +96,17 @@ func (f *frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	tmp1 := 1.0
 	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 12 {
-		tmp1 = math.Pow(2.0, -(sf_mult * float64(f.mainData.scalefac_s[gr][ch][sfb][win])))
+		tmp1 = math.Pow(2.0, -(sf_mult * float64(f.mainData.ScalefacS[gr][ch][sfb][win])))
 	}
 	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.global_gain[gr][ch])-210.0-
 		8.0*float64(f.sideInfo.subblock_gain[gr][ch][win])))
 	tmp3 := 0.0
-	if f.mainData.is[gr][ch][is_pos] < 0 {
-		tmp3 = -powtab34[int(-f.mainData.is[gr][ch][is_pos])]
+	if f.mainData.Is[gr][ch][is_pos] < 0 {
+		tmp3 = -powtab34[int(-f.mainData.Is[gr][ch][is_pos])]
 	} else {
-		tmp3 = powtab34[int(f.mainData.is[gr][ch][is_pos])]
+		tmp3 = powtab34[int(f.mainData.Is[gr][ch][is_pos])]
 	}
-	f.mainData.is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
+	f.mainData.Is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
 }
 
 type sfBandIndices struct {
@@ -228,7 +229,7 @@ func (f *frame) l3Reorder(gr int, ch int) {
 			if i == next_sfb {
 				// Copy reordered data back to the original vector
 				for j := 0; j < 3*win_len; j++ {
-					f.mainData.is[gr][ch][3*sfBandIndicesSet[sfreq].s[sfb]+j] = re[j]
+					f.mainData.Is[gr][ch][3*sfBandIndicesSet[sfreq].s[sfb]+j] = re[j]
 				}
 				// Check if this band is above the rzero region,if so we're done
 				if i >= f.sideInfo.count1[gr][ch] {
@@ -240,14 +241,14 @@ func (f *frame) l3Reorder(gr int, ch int) {
 			}
 			for win := 0; win < 3; win++ { // Do the actual reordering
 				for j := 0; j < win_len; j++ {
-					re[j*3+win] = f.mainData.is[gr][ch][i]
+					re[j*3+win] = f.mainData.Is[gr][ch][i]
 					i++
 				}
 			}
 		}
 		// Copy reordered data of last band back to original vector
 		for j := 0; j < 3*win_len; j++ {
-			f.mainData.is[gr][ch][3*sfBandIndicesSet[sfreq].s[12]+j] = re[j]
+			f.mainData.Is[gr][ch][3*sfBandIndicesSet[sfreq].s[12]+j] = re[j]
 		}
 	}
 }
@@ -260,7 +261,7 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
 	// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
-	is_pos := f.mainData.scalefac_l[gr][0][sfb]
+	is_pos := f.mainData.ScalefacL[gr][0][sfb]
 	if is_pos != 7 {
 		sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 		sfb_start := sfBandIndicesSet[sfreq].l[sfb]
@@ -274,8 +275,8 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 		}
 		// Now decode all samples in this scale factor band
 		for i := sfb_start; i < sfb_stop; i++ {
-			f.mainData.is[gr][0][i] *= is_ratio_l
-			f.mainData.is[gr][1][i] *= is_ratio_r
+			f.mainData.Is[gr][0][i] *= is_ratio_l
+			f.mainData.Is[gr][1][i] *= is_ratio_r
 		}
 	}
 }
@@ -289,7 +290,7 @@ func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 	// The three windows within the band has different scalefactors
 	for win := 0; win < 3; win++ {
 		// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
-		is_pos := f.mainData.scalefac_s[gr][0][sfb][win]
+		is_pos := f.mainData.ScalefacS[gr][0][sfb][win]
 		if is_pos != 7 {
 			sfb_start := sfBandIndicesSet[sfreq].s[sfb]*3 + win_len*win
 			sfb_stop := sfb_start + win_len
@@ -303,8 +304,8 @@ func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 			// Now decode all samples in this scale factor band
 			for i := sfb_start; i < sfb_stop; i++ {
 				// https://github.com/technosaurus/PDMP3/issues/3
-				f.mainData.is[gr][0][i] *= is_ratio_l
-				f.mainData.is[gr][1][i] *= is_ratio_r
+				f.mainData.Is[gr][0][i] *= is_ratio_l
+				f.mainData.Is[gr][1][i] *= is_ratio_r
 			}
 		}
 	}
@@ -326,10 +327,10 @@ func (f *frame) l3Stereo(gr int) {
 		// Do the actual processing
 		const invSqrt2 = math.Sqrt2 / 2
 		for i := 0; i < max_pos; i++ {
-			left := (f.mainData.is[gr][0][i] + f.mainData.is[gr][1][i]) * invSqrt2
-			right := (f.mainData.is[gr][0][i] - f.mainData.is[gr][1][i]) * invSqrt2
-			f.mainData.is[gr][0][i] = left
-			f.mainData.is[gr][1][i] = right
+			left := (f.mainData.Is[gr][0][i] + f.mainData.Is[gr][1][i]) * invSqrt2
+			right := (f.mainData.Is[gr][0][i] - f.mainData.Is[gr][1][i]) * invSqrt2
+			f.mainData.Is[gr][0][i] = left
+			f.mainData.Is[gr][1][i] = right
 		}
 	}
 	// Do intensity stereo processing
@@ -402,10 +403,10 @@ func (f *frame) l3Antialias(gr int, ch int) {
 		for i := 0; i < 8; i++ {
 			li := 18*sb - 1 - i
 			ui := 18*sb + i
-			lb := f.mainData.is[gr][ch][li]*cs[i] - f.mainData.is[gr][ch][ui]*ca[i]
-			ub := f.mainData.is[gr][ch][ui]*cs[i] + f.mainData.is[gr][ch][li]*ca[i]
-			f.mainData.is[gr][ch][li] = lb
-			f.mainData.is[gr][ch][ui] = ub
+			lb := f.mainData.Is[gr][ch][li]*cs[i] - f.mainData.Is[gr][ch][ui]*ca[i]
+			ub := f.mainData.Is[gr][ch][ui]*cs[i] + f.mainData.Is[gr][ch][li]*ca[i]
+			f.mainData.Is[gr][ch][li] = lb
+			f.mainData.Is[gr][ch][ui] = ub
 		}
 	}
 }
@@ -422,12 +423,12 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 		// Do the inverse modified DCT and windowing
 		in := make([]float32, 18)
 		for i := range in {
-			in[i] = f.mainData.is[gr][ch][sb*18+i]
+			in[i] = f.mainData.Is[gr][ch][sb*18+i]
 		}
 		rawout := imdct.Win(in, bt)
 		// Overlapp add with stored vector into main_data vector
 		for i := 0; i < 18; i++ {
-			f.mainData.is[gr][ch][sb*18+i] = rawout[i] + f.store[ch][sb][i]
+			f.mainData.Is[gr][ch][sb*18+i] = rawout[i] + f.store[ch][sb][i]
 			f.store[ch][sb][i] = rawout[i+18]
 		}
 	}
@@ -436,7 +437,7 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 func (f *frame) l3FrequencyInversion(gr int, ch int) {
 	for sb := 1; sb < 32; sb += 2 {
 		for i := 1; i < 18; i += 2 {
-			f.mainData.is[gr][ch][sb*18+i] = -f.mainData.is[gr][ch][sb*18+i]
+			f.mainData.Is[gr][ch][sb*18+i] = -f.mainData.Is[gr][ch][sb*18+i]
 		}
 	}
 }
@@ -594,7 +595,7 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []byte) {
 			f.v_vec[ch][i] = f.v_vec[ch][i-64]
 		}
 		for i := 0; i < 32; i++ { // Copy next 32 time samples to a temp vector
-			s_vec[i] = f.mainData.is[gr][ch][i*18+ss]
+			s_vec[i] = f.mainData.Is[gr][ch][i*18+ss]
 		}
 		for i := 0; i < 64; i++ { // Matrix multiply input with n_win[][] matrix
 			sum := float32(0)

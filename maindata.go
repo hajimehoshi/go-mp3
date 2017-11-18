@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
+	"github.com/hajimehoshi/go-mp3/internal/maindata"
 )
 
 var mpeg1ScalefacSizes = [16][2]int{
@@ -27,7 +28,7 @@ var mpeg1ScalefacSizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *bits.Bits, error) {
+func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo) (*maindata.MainData, *bits.Bits, error) {
 	nch := header.NumberOfChannels()
 	// Calculate header audio data size
 	framesize := header.FrameSize()
@@ -54,7 +55,7 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 		// This could be due to not enough data in reservoir
 		return nil, nil, err
 	}
-	md := &mpeg1MainData{}
+	md := &maindata.MainData{}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			part_2_start := m.BitPos()
@@ -64,7 +65,7 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 			if (sideInfo.win_switch_flag[gr][ch] != 0) && (sideInfo.block_type[gr][ch] == 2) {
 				if sideInfo.mixed_block_flag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {
-						md.scalefac_l[gr][ch][sfb] = m.Bits(slen1)
+						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
 					for sfb := 3; sfb < 12; sfb++ {
 						//slen1 for band 3-5,slen2 for 6-11
@@ -73,7 +74,7 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							md.scalefac_s[gr][ch][sfb][win] = m.Bits(nbits)
+							md.ScalefacS[gr][ch][sfb][win] = m.Bits(nbits)
 						}
 					}
 				} else {
@@ -84,7 +85,7 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							md.scalefac_s[gr][ch][sfb][win] = m.Bits(nbits)
+							md.ScalefacS[gr][ch][sfb][win] = m.Bits(nbits)
 						}
 					}
 				}
@@ -92,45 +93,45 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 				// Scale factor bands 0-5
 				if (sideInfo.scfsi[ch][0] == 0) || (gr == 0) {
 					for sfb := 0; sfb < 6; sfb++ {
-						md.scalefac_l[gr][ch][sfb] = m.Bits(slen1)
+						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
 				} else if (sideInfo.scfsi[ch][0] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 0; sfb < 6; sfb++ {
-						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
+						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 6-10
 				if (sideInfo.scfsi[ch][1] == 0) || (gr == 0) {
 					for sfb := 6; sfb < 11; sfb++ {
-						md.scalefac_l[gr][ch][sfb] = m.Bits(slen1)
+						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
 				} else if (sideInfo.scfsi[ch][1] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 6; sfb < 11; sfb++ {
-						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
+						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 11-15
 				if (sideInfo.scfsi[ch][2] == 0) || (gr == 0) {
 					for sfb := 11; sfb < 16; sfb++ {
-						md.scalefac_l[gr][ch][sfb] = m.Bits(slen2)
+						md.ScalefacL[gr][ch][sfb] = m.Bits(slen2)
 					}
 				} else if (sideInfo.scfsi[ch][2] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 11; sfb < 16; sfb++ {
-						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
+						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 16-20
 				if (sideInfo.scfsi[ch][3] == 0) || (gr == 0) {
 					for sfb := 16; sfb < 21; sfb++ {
-						md.scalefac_l[gr][ch][sfb] = m.Bits(slen2)
+						md.ScalefacL[gr][ch][sfb] = m.Bits(slen2)
 					}
 				} else if (sideInfo.scfsi[ch][3] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 16; sfb < 21; sfb++ {
-						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
+						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 			}
