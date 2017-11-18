@@ -73,18 +73,18 @@ func (f *Frame) Decode() []byte {
 	nch := f.header.NumberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			f.l3Requantize(gr, ch)
+			f.requantize(gr, ch)
 			// Reorder short blocks
-			f.l3Reorder(gr, ch)
+			f.reorder(gr, ch)
 		}
-		f.l3Stereo(gr)
+		f.stereo(gr)
 		for ch := 0; ch < nch; ch++ {
-			f.l3Antialias(gr, ch)
+			f.antialias(gr, ch)
 			// (IMDCT,windowing,overlapp add)
-			f.l3HybridSynthesis(gr, ch)
-			f.l3FrequencyInversion(gr, ch)
+			f.hybridSynthesis(gr, ch)
+			f.frequencyInversion(gr, ch)
 			// Polyphase subband synthesis
-			f.l3SubbandSynthesis(gr, ch, out[consts.SamplesPerGr*4*gr:])
+			f.subbandSynthesis(gr, ch, out[consts.SamplesPerGr*4*gr:])
 		}
 	}
 	return out
@@ -132,7 +132,7 @@ func (f *Frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	f.mainData.Is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
 }
 
-func (f *Frame) l3Requantize(gr int, ch int) {
+func (f *Frame) requantize(gr int, ch int) {
 	// Setup sampling frequency index
 	sfreq := f.header.SamplingFrequency()
 	// Determine type of block to process
@@ -206,7 +206,7 @@ func (f *Frame) l3Requantize(gr int, ch int) {
 	}
 }
 
-func (f *Frame) l3Reorder(gr int, ch int) {
+func (f *Frame) reorder(gr int, ch int) {
 	re := make([]float32, consts.SamplesPerGr)
 
 	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
@@ -312,7 +312,7 @@ func (f *Frame) stereoProcessIntensityShort(gr int, sfb int) {
 	}
 }
 
-func (f *Frame) l3Stereo(gr int) {
+func (f *Frame) stereo(gr int) {
 	// Do nothing if joint stereo is not enabled
 	if (f.header.Mode() != 1) || (f.header.ModeExtension() == 0) {
 		return
@@ -385,7 +385,7 @@ var (
 	ca = []float32{-0.514496, -0.471732, -0.313377, -0.181913, -0.094574, -0.040966, -0.014199, -0.003700}
 )
 
-func (f *Frame) l3Antialias(gr int, ch int) {
+func (f *Frame) antialias(gr int, ch int) {
 	// No antialiasing is done for short blocks
 	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) &&
 		(f.sideInfo.BlockType[gr][ch] == 2) &&
@@ -412,7 +412,7 @@ func (f *Frame) l3Antialias(gr int, ch int) {
 	}
 }
 
-func (f *Frame) l3HybridSynthesis(gr int, ch int) {
+func (f *Frame) hybridSynthesis(gr int, ch int) {
 	// Loop through all 32 subbands
 	for sb := 0; sb < 32; sb++ {
 		// Determine blocktype for this subband
@@ -435,7 +435,7 @@ func (f *Frame) l3HybridSynthesis(gr int, ch int) {
 	}
 }
 
-func (f *Frame) l3FrequencyInversion(gr int, ch int) {
+func (f *Frame) frequencyInversion(gr int, ch int) {
 	for sb := 1; sb < 32; sb += 2 {
 		for i := 1; i < 18; i += 2 {
 			f.mainData.Is[gr][ch][sb*18+i] = -f.mainData.Is[gr][ch][sb*18+i]
@@ -585,7 +585,7 @@ var synthDtbl = [512]float32{
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
 
-func (f *Frame) l3SubbandSynthesis(gr int, ch int, out []byte) {
+func (f *Frame) subbandSynthesis(gr int, ch int, out []byte) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
