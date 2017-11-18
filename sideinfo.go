@@ -21,9 +21,10 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
+	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
 )
 
-func (src *source) readSideInfo(header frameheader.FrameHeader) (*mpeg1SideInfo, error) {
+func (src *source) readSideInfo(header frameheader.FrameHeader) (*sideinfo.SideInfo, error) {
 	nch := header.NumberOfChannels()
 	// Calculate header audio data size
 	framesize := header.FrameSize()
@@ -48,56 +49,56 @@ func (src *source) readSideInfo(header frameheader.FrameHeader) (*mpeg1SideInfo,
 	}
 	// Parse audio data
 	// Pointer to where we should start reading main data
-	si := &mpeg1SideInfo{}
-	si.main_data_begin = s.Bits(9)
+	si := &sideinfo.SideInfo{}
+	si.MainDataBegin = s.Bits(9)
 	// Get private bits. Not used for anything.
 	if header.Mode() == consts.ModeSingleChannel {
-		si.private_bits = s.Bits(5)
+		si.PrivateBits = s.Bits(5)
 	} else {
-		si.private_bits = s.Bits(3)
+		si.PrivateBits = s.Bits(3)
 	}
 	// Get scale factor selection information
 	for ch := 0; ch < nch; ch++ {
 		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
-			si.scfsi[ch][scfsi_band] = s.Bits(1)
+			si.Scfsi[ch][scfsi_band] = s.Bits(1)
 		}
 	}
 	// Get the rest of the side information
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			si.part2_3_length[gr][ch] = s.Bits(12)
-			si.big_values[gr][ch] = s.Bits(9)
-			si.global_gain[gr][ch] = s.Bits(8)
-			si.scalefac_compress[gr][ch] = s.Bits(4)
-			si.win_switch_flag[gr][ch] = s.Bits(1)
-			if si.win_switch_flag[gr][ch] == 1 {
-				si.block_type[gr][ch] = s.Bits(2)
-				si.mixed_block_flag[gr][ch] = s.Bits(1)
+			si.Part2_3Length[gr][ch] = s.Bits(12)
+			si.BigValues[gr][ch] = s.Bits(9)
+			si.GlobalGain[gr][ch] = s.Bits(8)
+			si.ScalefacCompress[gr][ch] = s.Bits(4)
+			si.WinSwitchFlag[gr][ch] = s.Bits(1)
+			if si.WinSwitchFlag[gr][ch] == 1 {
+				si.BlockType[gr][ch] = s.Bits(2)
+				si.MixedBlockFlag[gr][ch] = s.Bits(1)
 				for region := 0; region < 2; region++ {
-					si.table_select[gr][ch][region] = s.Bits(5)
+					si.TableSelect[gr][ch][region] = s.Bits(5)
 				}
 				for window := 0; window < 3; window++ {
-					si.subblock_gain[gr][ch][window] = s.Bits(3)
+					si.SubblockGain[gr][ch][window] = s.Bits(3)
 				}
-				if (si.block_type[gr][ch] == 2) && (si.mixed_block_flag[gr][ch] == 0) {
-					si.region0_count[gr][ch] = 8 // Implicit
+				if (si.BlockType[gr][ch] == 2) && (si.MixedBlockFlag[gr][ch] == 0) {
+					si.Region0Count[gr][ch] = 8 // Implicit
 				} else {
-					si.region0_count[gr][ch] = 7 // Implicit
+					si.Region0Count[gr][ch] = 7 // Implicit
 				}
 				// The standard is wrong on this!!!
 				// Implicit
-				si.region1_count[gr][ch] = 20 - si.region0_count[gr][ch]
+				si.Region1Count[gr][ch] = 20 - si.Region0Count[gr][ch]
 			} else {
 				for region := 0; region < 3; region++ {
-					si.table_select[gr][ch][region] = s.Bits(5)
+					si.TableSelect[gr][ch][region] = s.Bits(5)
 				}
-				si.region0_count[gr][ch] = s.Bits(4)
-				si.region1_count[gr][ch] = s.Bits(3)
-				si.block_type[gr][ch] = 0 // Implicit
+				si.Region0Count[gr][ch] = s.Bits(4)
+				si.Region1Count[gr][ch] = s.Bits(3)
+				si.BlockType[gr][ch] = 0 // Implicit
 			}
-			si.preflag[gr][ch] = s.Bits(1)
-			si.scalefac_scale[gr][ch] = s.Bits(1)
-			si.count1table_select[gr][ch] = s.Bits(1)
+			si.Preflag[gr][ch] = s.Bits(1)
+			si.ScalefacScale[gr][ch] = s.Bits(1)
+			si.Count1TableSelect[gr][ch] = s.Bits(1)
 		}
 	}
 	return si, nil

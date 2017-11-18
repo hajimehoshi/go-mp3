@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 	"github.com/hajimehoshi/go-mp3/internal/maindata"
+	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
 )
 
 var mpeg1ScalefacSizes = [16][2]int{
@@ -28,7 +29,7 @@ var mpeg1ScalefacSizes = [16][2]int{
 }
 
 // TOOD: Move readMainL3 to internal/maindata
-func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo) (*maindata.MainData, *bits.Bits, error) {
+func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*maindata.MainData, *bits.Bits, error) {
 	nch := header.NumberOfChannels()
 	// Calculate header audio data size
 	framesize := header.FrameSize()
@@ -50,7 +51,7 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 	// two frames. main_data_begin indicates how many bytes from previous
 	// frames that should be used. This buffer is later accessed by the
 	// Bits function in the same way as the side info is.
-	m, err := maindata.Read(s, prev, main_data_size, sideInfo.main_data_begin)
+	m, err := maindata.Read(s, prev, main_data_size, sideInfo.MainDataBegin)
 	if err != nil {
 		// This could be due to not enough data in reservoir
 		return nil, nil, err
@@ -60,10 +61,10 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 		for ch := 0; ch < nch; ch++ {
 			part_2_start := m.BitPos()
 			// Number of bits in the bitstream for the bands
-			slen1 := mpeg1ScalefacSizes[sideInfo.scalefac_compress[gr][ch]][0]
-			slen2 := mpeg1ScalefacSizes[sideInfo.scalefac_compress[gr][ch]][1]
-			if (sideInfo.win_switch_flag[gr][ch] != 0) && (sideInfo.block_type[gr][ch] == 2) {
-				if sideInfo.mixed_block_flag[gr][ch] != 0 {
+			slen1 := mpeg1ScalefacSizes[sideInfo.ScalefacCompress[gr][ch]][0]
+			slen2 := mpeg1ScalefacSizes[sideInfo.ScalefacCompress[gr][ch]][1]
+			if (sideInfo.WinSwitchFlag[gr][ch] != 0) && (sideInfo.BlockType[gr][ch] == 2) {
+				if sideInfo.MixedBlockFlag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
@@ -91,44 +92,44 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 				}
 			} else { // block_type == 0 if winswitch == 0
 				// Scale factor bands 0-5
-				if (sideInfo.scfsi[ch][0] == 0) || (gr == 0) {
+				if (sideInfo.Scfsi[ch][0] == 0) || (gr == 0) {
 					for sfb := 0; sfb < 6; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
-				} else if (sideInfo.scfsi[ch][0] == 1) && (gr == 1) {
+				} else if (sideInfo.Scfsi[ch][0] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 0; sfb < 6; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 6-10
-				if (sideInfo.scfsi[ch][1] == 0) || (gr == 0) {
+				if (sideInfo.Scfsi[ch][1] == 0) || (gr == 0) {
 					for sfb := 6; sfb < 11; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
-				} else if (sideInfo.scfsi[ch][1] == 1) && (gr == 1) {
+				} else if (sideInfo.Scfsi[ch][1] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 6; sfb < 11; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 11-15
-				if (sideInfo.scfsi[ch][2] == 0) || (gr == 0) {
+				if (sideInfo.Scfsi[ch][2] == 0) || (gr == 0) {
 					for sfb := 11; sfb < 16; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen2)
 					}
-				} else if (sideInfo.scfsi[ch][2] == 1) && (gr == 1) {
+				} else if (sideInfo.Scfsi[ch][2] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 11; sfb < 16; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 16-20
-				if (sideInfo.scfsi[ch][3] == 0) || (gr == 0) {
+				if (sideInfo.Scfsi[ch][3] == 0) || (gr == 0) {
 					for sfb := 16; sfb < 21; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen2)
 					}
-				} else if (sideInfo.scfsi[ch][3] == 1) && (gr == 1) {
+				} else if (sideInfo.Scfsi[ch][3] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 16; sfb < 21; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]

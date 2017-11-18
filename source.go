@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 	"github.com/hajimehoshi/go-mp3/internal/maindata"
+	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
 )
 
 type source struct {
@@ -237,32 +238,32 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 	return head, pos, nil
 }
 
-func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo, mainData *maindata.MainData, part_2_start, gr, ch int) error {
+func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo, mainData *maindata.MainData, part_2_start, gr, ch int) error {
 	// Check that there is any data to decode. If not,zero the array.
-	if sideInfo.part2_3_length[gr][ch] == 0 {
+	if sideInfo.Part2_3Length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < consts.SamplesPerGr; is_pos++ {
 			mainData.Is[gr][ch][is_pos] = 0.0
 		}
 		return nil
 	}
 	// Calculate bit_pos_end which is the index of the last bit for this part.
-	bit_pos_end := part_2_start + sideInfo.part2_3_length[gr][ch] - 1
+	bit_pos_end := part_2_start + sideInfo.Part2_3Length[gr][ch] - 1
 	// Determine region boundaries
 	region_1_start := 0
 	region_2_start := 0
-	if (sideInfo.win_switch_flag[gr][ch] == 1) && (sideInfo.block_type[gr][ch] == 2) {
+	if (sideInfo.WinSwitchFlag[gr][ch] == 1) && (sideInfo.BlockType[gr][ch] == 2) {
 		region_1_start = 36                  // sfb[9/3]*3=36
 		region_2_start = consts.SamplesPerGr // No Region2 for short block case.
 	} else {
 		sfreq := header.SamplingFrequency()
 		l := sfBandIndicesSet[sfreq].l
-		i := sideInfo.region0_count[gr][ch] + 1
+		i := sideInfo.Region0Count[gr][ch] + 1
 		if i < 0 || len(l) <= i {
 			// TODO: Better error messages (#3)
 			return fmt.Errorf("mp3: readHuffman failed: invalid index i: %d", i)
 		}
 		region_1_start = l[i]
-		j := sideInfo.region0_count[gr][ch] + sideInfo.region1_count[gr][ch] + 2
+		j := sideInfo.Region0Count[gr][ch] + sideInfo.Region1Count[gr][ch] + 2
 		if j < 0 || len(l) <= j {
 			// TODO: Better error messages (#3)
 			return fmt.Errorf("mp3: readHuffman failed: invalid index j: %d", j)
@@ -270,14 +271,14 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1Si
 		region_2_start = l[j]
 	}
 	// Read big_values using tables according to region_x_start
-	for is_pos := 0; is_pos < sideInfo.big_values[gr][ch]*2; is_pos++ {
+	for is_pos := 0; is_pos < sideInfo.BigValues[gr][ch]*2; is_pos++ {
 		table_num := 0
 		if is_pos < region_1_start {
-			table_num = sideInfo.table_select[gr][ch][0]
+			table_num = sideInfo.TableSelect[gr][ch][0]
 		} else if is_pos < region_2_start {
-			table_num = sideInfo.table_select[gr][ch][1]
+			table_num = sideInfo.TableSelect[gr][ch][1]
 		} else {
-			table_num = sideInfo.table_select[gr][ch][2]
+			table_num = sideInfo.TableSelect[gr][ch][2]
 		}
 		// Get next Huffman coded words
 		x, y, _, _, err := huffmanDecode(m, table_num)
@@ -290,8 +291,8 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1Si
 		mainData.Is[gr][ch][is_pos] = float32(y)
 	}
 	// Read small values until is_pos = 576 or we run out of huffman data
-	table_num := sideInfo.count1table_select[gr][ch] + 32
-	is_pos := sideInfo.big_values[gr][ch] * 2
+	table_num := sideInfo.Count1TableSelect[gr][ch] + 32
+	is_pos := sideInfo.BigValues[gr][ch] * 2
 	for is_pos <= 572 && m.BitPos() <= bit_pos_end {
 		// Get next Huffman coded words
 		x, y, v, w, err := huffmanDecode(m, table_num)
@@ -322,7 +323,7 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1Si
 		is_pos -= 4
 	}
 	// Setup count1 which is the index of the first sample in the rzero reg.
-	sideInfo.count1[gr][ch] = is_pos
+	sideInfo.Count1[gr][ch] = is_pos
 	// Zero out the last part if necessary
 	for is_pos < consts.SamplesPerGr {
 		mainData.Is[gr][ch][is_pos] = 0.0

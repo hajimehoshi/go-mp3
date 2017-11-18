@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 	"github.com/hajimehoshi/go-mp3/internal/imdct"
 	"github.com/hajimehoshi/go-mp3/internal/maindata"
+	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
 )
 
 var (
@@ -37,7 +38,7 @@ func init() {
 
 type frame struct {
 	header   frameheader.FrameHeader
-	sideInfo *mpeg1SideInfo
+	sideInfo *sideinfo.SideInfo
 	mainData *maindata.MainData
 
 	mainDataBytes *bits.Bits
@@ -69,16 +70,16 @@ func (f *frame) decodeL3() []byte {
 
 func (f *frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	sf_mult := 0.5
-	if f.sideInfo.scalefac_scale[gr][ch] != 0 {
+	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
 	tmp1 := 1.0
 	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 21 {
-		pf_x_pt := float64(f.sideInfo.preflag[gr][ch]) * pretab[sfb]
+		pf_x_pt := float64(f.sideInfo.Preflag[gr][ch]) * pretab[sfb]
 		tmp1 = math.Pow(2.0, -(sf_mult * (float64(f.mainData.ScalefacL[gr][ch][sfb]) + pf_x_pt)))
 	}
-	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.global_gain[gr][ch])-210))
+	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.GlobalGain[gr][ch])-210))
 	tmp3 := 0.0
 	if f.mainData.Is[gr][ch][is_pos] < 0.0 {
 		tmp3 = -powtab34[int(-f.mainData.Is[gr][ch][is_pos])]
@@ -90,7 +91,7 @@ func (f *frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 
 func (f *frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	sf_mult := 0.5
-	if f.sideInfo.scalefac_scale[gr][ch] != 0 {
+	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
 	tmp1 := 1.0
@@ -98,8 +99,8 @@ func (f *frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	if sfb < 12 {
 		tmp1 = math.Pow(2.0, -(sf_mult * float64(f.mainData.ScalefacS[gr][ch][sfb][win])))
 	}
-	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.global_gain[gr][ch])-210.0-
-		8.0*float64(f.sideInfo.subblock_gain[gr][ch][win])))
+	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.GlobalGain[gr][ch])-210.0-
+		8.0*float64(f.sideInfo.SubblockGain[gr][ch][win])))
 	tmp3 := 0.0
 	if f.mainData.Is[gr][ch][is_pos] < 0 {
 		tmp3 = -powtab34[int(-f.mainData.Is[gr][ch][is_pos])]
@@ -135,10 +136,10 @@ func (f *frame) l3Requantize(gr int, ch int) {
 	// Setup sampling frequency index
 	sfreq := f.header.SamplingFrequency()
 	// Determine type of block to process
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { // Short blocks
+	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) && (f.sideInfo.BlockType[gr][ch] == 2) { // Short blocks
 		// Check if the first two subbands
 		// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
-		if f.sideInfo.mixed_block_flag[gr][ch] != 0 { // 2 longbl. sb  first
+		if f.sideInfo.MixedBlockFlag[gr][ch] != 0 { // 2 longbl. sb  first
 			// First process the 2 long block subbands at the start
 			sfb := 0
 			next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
@@ -155,7 +156,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
 				sfBandIndicesSet[sfreq].s[sfb]
 
-			for i := 36; i < int(f.sideInfo.count1[gr][ch]); /* i++ done below! */ {
+			for i := 36; i < int(f.sideInfo.Count1[gr][ch]); /* i++ done below! */ {
 				// Check if we're into the next scalefac band
 				if i == next_sfb {
 					sfb++
@@ -176,7 +177,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 			next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
 			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
 				sfBandIndicesSet[sfreq].s[sfb]
-			for i := 0; i < int(f.sideInfo.count1[gr][ch]); /* i++ done below! */ {
+			for i := 0; i < int(f.sideInfo.Count1[gr][ch]); /* i++ done below! */ {
 				// Check if we're into the next scalefac band
 				if i == next_sfb {
 					sfb++
@@ -195,7 +196,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 	} else { // Only long blocks
 		sfb := 0
 		next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
-		for i := 0; i < int(f.sideInfo.count1[gr][ch]); i++ {
+		for i := 0; i < int(f.sideInfo.Count1[gr][ch]); i++ {
 			if i == next_sfb {
 				sfb++
 				next_sfb = sfBandIndicesSet[sfreq].l[sfb+1]
@@ -210,12 +211,12 @@ func (f *frame) l3Reorder(gr int, ch int) {
 
 	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 	// Only reorder short blocks
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { // Short blocks
+	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) && (f.sideInfo.BlockType[gr][ch] == 2) { // Short blocks
 		// Check if the first two subbands
 		// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
 		sfb := 0
 		// 2 longbl. sb  first
-		if f.sideInfo.mixed_block_flag[gr][ch] != 0 {
+		if f.sideInfo.MixedBlockFlag[gr][ch] != 0 {
 			sfb = 3
 		}
 		next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
@@ -232,7 +233,7 @@ func (f *frame) l3Reorder(gr int, ch int) {
 					f.mainData.Is[gr][ch][3*sfBandIndicesSet[sfreq].s[sfb]+j] = re[j]
 				}
 				// Check if this band is above the rzero region,if so we're done
-				if i >= f.sideInfo.count1[gr][ch] {
+				if i >= f.sideInfo.Count1[gr][ch] {
 					return
 				}
 				sfb++
@@ -320,10 +321,10 @@ func (f *frame) l3Stereo(gr int) {
 	if (f.header.ModeExtension() & 0x2) != 0 {
 		// Determine how many frequency lines to transform
 		i := 0
-		if f.sideInfo.count1[gr][0] > f.sideInfo.count1[gr][1] {
+		if f.sideInfo.Count1[gr][0] > f.sideInfo.Count1[gr][1] {
 			i = 1
 		}
-		max_pos := int(f.sideInfo.count1[gr][i])
+		max_pos := int(f.sideInfo.Count1[gr][i])
 		// Do the actual processing
 		const invSqrt2 = math.Sqrt2 / 2
 		for i := 0; i < max_pos; i++ {
@@ -341,28 +342,28 @@ func (f *frame) l3Stereo(gr int) {
 		// band on or above count1 frequency line. N.B.: Intensity stereo coding is
 		// only done for higher subbands, but logic is here for lower subbands.
 		// Determine type of block to process
-		if (f.sideInfo.win_switch_flag[gr][0] == 1) &&
-			(f.sideInfo.block_type[gr][0] == 2) { // Short blocks
+		if (f.sideInfo.WinSwitchFlag[gr][0] == 1) &&
+			(f.sideInfo.BlockType[gr][0] == 2) { // Short blocks
 			// Check if the first two subbands
 			// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
-			if f.sideInfo.mixed_block_flag[gr][0] != 0 { // 2 longbl. sb  first
+			if f.sideInfo.MixedBlockFlag[gr][0] != 0 { // 2 longbl. sb  first
 				for sfb := 0; sfb < 8; sfb++ { // First process 8 sfb's at start
 					// Is this scale factor band above count1 for the right channel?
-					if sfBandIndicesSet[sfreq].l[sfb] >= f.sideInfo.count1[gr][1] {
+					if sfBandIndicesSet[sfreq].l[sfb] >= f.sideInfo.Count1[gr][1] {
 						f.stereoProcessIntensityLong(gr, sfb)
 					}
 				}
 				// And next the remaining bands which uses short blocks
 				for sfb := 3; sfb < 12; sfb++ {
 					// Is this scale factor band above count1 for the right channel?
-					if sfBandIndicesSet[sfreq].s[sfb]*3 >= f.sideInfo.count1[gr][1] {
+					if sfBandIndicesSet[sfreq].s[sfb]*3 >= f.sideInfo.Count1[gr][1] {
 						f.stereoProcessIntensityShort(gr, sfb) // intensity stereo processing
 					}
 				}
 			} else { // Only short blocks
 				for sfb := 0; sfb < 12; sfb++ {
 					// Is this scale factor band above count1 for the right channel?
-					if sfBandIndicesSet[sfreq].s[sfb]*3 >= f.sideInfo.count1[gr][1] {
+					if sfBandIndicesSet[sfreq].s[sfb]*3 >= f.sideInfo.Count1[gr][1] {
 						f.stereoProcessIntensityShort(gr, sfb) // intensity stereo processing
 					}
 				}
@@ -370,7 +371,7 @@ func (f *frame) l3Stereo(gr int) {
 		} else { // Only long blocks
 			for sfb := 0; sfb < 21; sfb++ {
 				// Is this scale factor band above count1 for the right channel?
-				if sfBandIndicesSet[sfreq].l[sfb] >= f.sideInfo.count1[gr][1] {
+				if sfBandIndicesSet[sfreq].l[sfb] >= f.sideInfo.Count1[gr][1] {
 					// Perform the intensity stereo processing
 					f.stereoProcessIntensityLong(gr, sfb)
 				}
@@ -386,16 +387,16 @@ var (
 
 func (f *frame) l3Antialias(gr int, ch int) {
 	// No antialiasing is done for short blocks
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) &&
-		(f.sideInfo.block_type[gr][ch] == 2) &&
-		(f.sideInfo.mixed_block_flag[gr][ch]) == 0 {
+	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) &&
+		(f.sideInfo.BlockType[gr][ch] == 2) &&
+		(f.sideInfo.MixedBlockFlag[gr][ch]) == 0 {
 		return
 	}
 	// Setup the limit for how many subbands to transform
 	sblim := 32
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) &&
-		(f.sideInfo.block_type[gr][ch] == 2) &&
-		(f.sideInfo.mixed_block_flag[gr][ch] == 1) {
+	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) &&
+		(f.sideInfo.BlockType[gr][ch] == 2) &&
+		(f.sideInfo.MixedBlockFlag[gr][ch] == 1) {
 		sblim = 2
 	}
 	// Do the actual antialiasing
@@ -415,9 +416,9 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 	// Loop through all 32 subbands
 	for sb := 0; sb < 32; sb++ {
 		// Determine blocktype for this subband
-		bt := int(f.sideInfo.block_type[gr][ch])
-		if (f.sideInfo.win_switch_flag[gr][ch] == 1) &&
-			(f.sideInfo.mixed_block_flag[gr][ch] == 1) && (sb < 2) {
+		bt := int(f.sideInfo.BlockType[gr][ch])
+		if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) &&
+			(f.sideInfo.MixedBlockFlag[gr][ch] == 1) && (sb < 2) {
 			bt = 0
 		}
 		// Do the inverse modified DCT and windowing
