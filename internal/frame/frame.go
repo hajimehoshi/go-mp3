@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mp3
+package frame
 
 import (
 	"math"
@@ -36,17 +36,39 @@ func init() {
 	}
 }
 
-type frame struct {
+type Frame struct {
 	header   frameheader.FrameHeader
 	sideInfo *sideinfo.SideInfo
 	mainData *maindata.MainData
 
-	mainDataBytes *bits.Bits
-	store         [2][32][18]float32
-	v_vec         [2][1024]float32
+	mainDataBits *bits.Bits
+	store        [2][32][18]float32
+	v_vec        [2][1024]float32
 }
 
-func (f *frame) decodeL3() []byte {
+func New(header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo, mainData *maindata.MainData, mainDataBits *bits.Bits, prev *Frame) *Frame {
+	f := &Frame{
+		header:       header,
+		sideInfo:     sideInfo,
+		mainData:     mainData,
+		mainDataBits: mainDataBits,
+	}
+	if prev != nil {
+		f.store = prev.store
+		f.v_vec = prev.v_vec
+	}
+	return f
+}
+
+func (f *Frame) SamplingFrequency() int {
+	return f.header.SamplingFrequency().Int()
+}
+
+func (f *Frame) MainDataBits() *bits.Bits {
+	return f.mainDataBits
+}
+
+func (f *Frame) Decode() []byte {
 	out := make([]byte, consts.BytesPerFrame)
 	nch := f.header.NumberOfChannels()
 	for gr := 0; gr < 2; gr++ {
@@ -68,7 +90,7 @@ func (f *frame) decodeL3() []byte {
 	return out
 }
 
-func (f *frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
+func (f *Frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	sf_mult := 0.5
 	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
@@ -89,7 +111,7 @@ func (f *frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	f.mainData.Is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
 }
 
-func (f *frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
+func (f *Frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	sf_mult := 0.5
 	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
@@ -110,7 +132,7 @@ func (f *frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	f.mainData.Is[gr][ch][is_pos] = float32(tmp1 * tmp2 * tmp3)
 }
 
-func (f *frame) l3Requantize(gr int, ch int) {
+func (f *Frame) l3Requantize(gr int, ch int) {
 	// Setup sampling frequency index
 	sfreq := f.header.SamplingFrequency()
 	// Determine type of block to process
@@ -184,7 +206,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 	}
 }
 
-func (f *frame) l3Reorder(gr int, ch int) {
+func (f *Frame) l3Reorder(gr int, ch int) {
 	re := make([]float32, consts.SamplesPerGr)
 
 	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
@@ -236,7 +258,7 @@ var (
 	isRatios = []float32{0.000000, 0.267949, 0.577350, 1.000000, 1.732051, 3.732051}
 )
 
-func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
+func (f *Frame) stereoProcessIntensityLong(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
 	// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
@@ -260,7 +282,7 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 	}
 }
 
-func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
+func (f *Frame) stereoProcessIntensityShort(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
 	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
@@ -290,7 +312,7 @@ func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 	}
 }
 
-func (f *frame) l3Stereo(gr int) {
+func (f *Frame) l3Stereo(gr int) {
 	// Do nothing if joint stereo is not enabled
 	if (f.header.Mode() != 1) || (f.header.ModeExtension() == 0) {
 		return
@@ -363,7 +385,7 @@ var (
 	ca = []float32{-0.514496, -0.471732, -0.313377, -0.181913, -0.094574, -0.040966, -0.014199, -0.003700}
 )
 
-func (f *frame) l3Antialias(gr int, ch int) {
+func (f *Frame) l3Antialias(gr int, ch int) {
 	// No antialiasing is done for short blocks
 	if (f.sideInfo.WinSwitchFlag[gr][ch] == 1) &&
 		(f.sideInfo.BlockType[gr][ch] == 2) &&
@@ -390,7 +412,7 @@ func (f *frame) l3Antialias(gr int, ch int) {
 	}
 }
 
-func (f *frame) l3HybridSynthesis(gr int, ch int) {
+func (f *Frame) l3HybridSynthesis(gr int, ch int) {
 	// Loop through all 32 subbands
 	for sb := 0; sb < 32; sb++ {
 		// Determine blocktype for this subband
@@ -413,7 +435,7 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 	}
 }
 
-func (f *frame) l3FrequencyInversion(gr int, ch int) {
+func (f *Frame) l3FrequencyInversion(gr int, ch int) {
 	for sb := 1; sb < 32; sb += 2 {
 		for i := 1; i < 18; i += 2 {
 			f.mainData.Is[gr][ch][sb*18+i] = -f.mainData.Is[gr][ch][sb*18+i]
@@ -563,7 +585,7 @@ var synthDtbl = [512]float32{
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
 
-func (f *frame) l3SubbandSynthesis(gr int, ch int, out []byte) {
+func (f *Frame) l3SubbandSynthesis(gr int, ch int, out []byte) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 

@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
+	"github.com/hajimehoshi/go-mp3/internal/frame"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 	"github.com/hajimehoshi/go-mp3/internal/maindata"
 	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
@@ -142,7 +143,7 @@ func (s *source) readCRC() error {
 	return nil
 }
 
-func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err error) {
+func (s *source) readNextFrame(prev *frame.Frame) (f *frame.Frame, startPosition int64, err error) {
 	h, pos, err := s.readHeader()
 	if err != nil {
 		return nil, 0, err
@@ -169,22 +170,13 @@ func (s *source) readNextFrame(prev *frame) (f *frame, startPosition int64, err 
 	// Get main data(scalefactors and Huffman coded frequency data)
 	var prevM *bits.Bits
 	if prev != nil {
-		prevM = prev.mainDataBytes
+		prevM = prev.MainDataBits()
 	}
 	md, mdb, err := maindata.Read(s, prevM, h, si)
 	if err != nil {
 		return nil, 0, err
 	}
-	nf := &frame{
-		header:        h,
-		sideInfo:      si,
-		mainData:      md,
-		mainDataBytes: mdb,
-	}
-	if prev != nil {
-		nf.store = prev.store
-		nf.v_vec = prev.v_vec
-	}
+	nf := frame.New(h, si, md, mdb, prev)
 	return nf, pos, nil
 }
 

@@ -19,6 +19,7 @@ import (
 	"io"
 
 	"github.com/hajimehoshi/go-mp3/internal/consts"
+	"github.com/hajimehoshi/go-mp3/internal/frame"
 )
 
 // A Decoder is a MP3-decoded stream.
@@ -30,7 +31,7 @@ type Decoder struct {
 	length      int64
 	frameStarts []int64
 	buf         []byte
-	frame       *frame
+	frame       *frame.Frame
 	pos         int64
 }
 
@@ -47,7 +48,7 @@ func (d *Decoder) readFrame() error {
 		}
 		return err
 	}
-	d.buf = append(d.buf, d.frame.decodeL3()...)
+	d.buf = append(d.buf, d.frame.Decode()...)
 	return nil
 }
 
@@ -149,7 +150,7 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 			return nil, err
 		}
 		l := int64(0)
-		var f *frame
+		var f *frame.Frame
 		for {
 			var err error
 			pos := int64(0)
@@ -179,6 +180,6 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
-	d.sampleRate = d.frame.header.SamplingFrequency().Int()
+	d.sampleRate = d.frame.SamplingFrequency()
 	return d, nil
 }
