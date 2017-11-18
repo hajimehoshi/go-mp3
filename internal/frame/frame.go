@@ -359,9 +359,9 @@ func (f *Frame) stereoProcessIntensityShort(gr int, sfb int) {
 func (f *Frame) stereo(gr int) {
 	if f.header.UseMSStereo() {
 		// Determine how many frequency lines to transform
-		i := 0
+		i := 1
 		if f.sideInfo.Count1[gr][0] > f.sideInfo.Count1[gr][1] {
-			i = 1
+			i = 0
 		}
 		max_pos := int(f.sideInfo.Count1[gr][i])
 		// Do the actual processing
