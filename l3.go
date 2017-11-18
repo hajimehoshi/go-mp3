@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/imdct"
+	"github.com/hajimehoshi/go-mp3/internal/consts"
 )
 
 var (
@@ -43,7 +44,7 @@ type frame struct {
 }
 
 func (f *frame) decodeL3() []byte {
-	out := make([]byte, bytesPerFrame)
+	out := make([]byte, consts.BytesPerFrame)
 	nch := f.header.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
@@ -58,7 +59,7 @@ func (f *frame) decodeL3() []byte {
 			f.l3HybridSynthesis(gr, ch)
 			f.l3FrequencyInversion(gr, ch)
 			// Polyphase subband synthesis
-			f.l3SubbandSynthesis(gr, ch, out[samplesPerGr*4*gr:])
+			f.l3SubbandSynthesis(gr, ch, out[consts.SamplesPerGr*4*gr:])
 		}
 	}
 	return out
@@ -203,7 +204,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 }
 
 func (f *frame) l3Reorder(gr int, ch int) {
-	re := make([]float32, samplesPerGr)
+	re := make([]float32, consts.SamplesPerGr)
 
 	sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 	// Only reorder short blocks
@@ -221,7 +222,7 @@ func (f *frame) l3Reorder(gr int, ch int) {
 		if sfb == 0 {
 			i = 0
 		}
-		for i < samplesPerGr {
+		for i < consts.SamplesPerGr {
 			// Check if we're into the next scalefac band
 			if i == next_sfb {
 				// Copy reordered data back to the original vector

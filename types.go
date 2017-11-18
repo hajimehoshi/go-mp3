@@ -220,9 +220,3 @@ func (h *mpeg1FrameHeader) numberOfChannels() int {
 	}
 	return 2
 }
-
-const (
-	samplesPerGr    = 576
-	samplesPerFrame = samplesPerGr * 2
-	bytesPerFrame   = samplesPerFrame * 4
-)

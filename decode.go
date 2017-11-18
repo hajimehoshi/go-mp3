@@ -17,6 +17,8 @@ package mp3
 import (
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/go-mp3/internal/consts"
 )
 
 type unexpectedEOF struct {
@@ -88,7 +90,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	d.pos = npos
 	d.buf = nil
 	d.frame = nil
-	f := d.pos / bytesPerFrame
+	f := d.pos / consts.BytesPerFrame
 	// If the frame is not first, read the previous ahead of reading that
 	// because the previous frame can affect the targeted frame.
 	if f > 0 {
@@ -102,7 +104,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 		if err := d.readFrame(); err != nil {
 			return 0, err
 		}
-		d.buf = d.buf[bytesPerFrame+(d.pos%bytesPerFrame):]
+		d.buf = d.buf[consts.BytesPerFrame+(d.pos%consts.BytesPerFrame):]
 	} else {
 		if _, err := d.source.Seek(d.frameStarts[f], 0); err != nil {
 			return 0, err
@@ -171,7 +173,7 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 				return nil, err
 			}
 			d.frameStarts = append(d.frameStarts, pos)
-			l += bytesPerFrame
+			l += consts.BytesPerFrame
 		}
 		if err := s.rewind(); err != nil {
 			return nil, err
