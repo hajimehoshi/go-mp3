@@ -19,6 +19,7 @@ import (
 	"io"
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
+	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 )
 
 var mpeg1ScalefacSizes = [16][2]int{
@@ -26,10 +27,10 @@ var mpeg1ScalefacSizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-func (s *source) readMainL3(prev *bits.Bits, header mpeg1FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *bits.Bits, error) {
-	nch := header.numberOfChannels()
+func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *bits.Bits, error) {
+	nch := header.NumberOfChannels()
 	// Calculate header audio data size
-	framesize := header.frameSize()
+	framesize := header.FrameSize()
 	if framesize > 2000 {
 		return nil, nil, fmt.Errorf("mp3: framesize = %d", framesize)
 	}

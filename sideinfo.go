@@ -20,12 +20,13 @@ import (
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
+	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 )
 
-func (src *source) readSideInfo(header mpeg1FrameHeader) (*mpeg1SideInfo, error) {
-	nch := header.numberOfChannels()
+func (src *source) readSideInfo(header frameheader.FrameHeader) (*mpeg1SideInfo, error) {
+	nch := header.NumberOfChannels()
 	// Calculate header audio data size
-	framesize := header.frameSize()
+	framesize := header.FrameSize()
 	if framesize > 2000 {
 		return nil, fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}

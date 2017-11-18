@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/consts"
+	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 	"github.com/hajimehoshi/go-mp3/internal/imdct"
 )
 
@@ -34,7 +35,7 @@ func init() {
 }
 
 type frame struct {
-	header   mpeg1FrameHeader
+	header   frameheader.FrameHeader
 	sideInfo *mpeg1SideInfo
 	mainData *mpeg1MainData
 
@@ -45,7 +46,7 @@ type frame struct {
 
 func (f *frame) decodeL3() []byte {
 	out := make([]byte, consts.BytesPerFrame)
-	nch := f.header.numberOfChannels()
+	nch := f.header.NumberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			f.l3Requantize(gr, ch)
@@ -586,7 +587,7 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []byte) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
-	nch := f.header.numberOfChannels()
+	nch := f.header.NumberOfChannels()
 	// Setup the n_win windowing vector and the v_vec intermediate vector
 	for ss := 0; ss < 18; ss++ { // Loop through 18 samples in 32 subbands
 		for i := 1023; i > 63; i-- { // Shift up the V vector
