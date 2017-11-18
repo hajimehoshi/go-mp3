@@ -65,9 +65,25 @@ func (f FrameHeader) Mode() consts.Mode {
 	return consts.Mode((f & 0x000000c0) >> 6)
 }
 
-// ModeExtension returns the mode_extension - for use with Joint Stereo - stored in position 4,5
-func (f FrameHeader) ModeExtension() int {
+// modeExtension returns the mode_extension - for use with Joint Stereo - stored in position 4,5
+func (f FrameHeader) modeExtension() int {
 	return int(f&0x00000030) >> 4
+}
+
+// UseMSStereo returns a boolean value indicating whether the frame uses middle/side stereo.
+func (f FrameHeader) UseMSStereo() bool {
+	if f.Mode() != consts.ModeJointStereo {
+		return false
+	}
+	return f.modeExtension()&0x2 != 0
+}
+
+// UseIntensityStereo returns a boolean value indicating whether the frame uses intensity stereo.
+func (f FrameHeader) UseIntensityStereo() bool {
+	if f.Mode() != consts.ModeJointStereo {
+		return false
+	}
+	return f.modeExtension()&0x1 != 0
 }
 
 // Copyright returns whether or not this recording is copywritten - stored in position 3

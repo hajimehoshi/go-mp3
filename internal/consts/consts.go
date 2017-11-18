@@ -47,10 +47,10 @@ const (
 type Mode int
 
 const (
-	ModeStereo Mode = iota
-	ModeJointStereo
-	ModeDualChannel
-	ModeSingleChannel
+	ModeStereo        Mode = 0
+	ModeJointStereo   Mode = 1
+	ModeDualChannel   Mode = 2
+	ModeSingleChannel Mode = 3
 )
 
 const (

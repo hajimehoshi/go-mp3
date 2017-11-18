@@ -115,6 +115,8 @@ func Read(source FullReader, header frameheader.FrameHeader) (*SideInfo, error) 
 				for window := 0; window < 3; window++ {
 					si.SubblockGain[gr][ch][window] = s.Bits(3)
 				}
+
+				// TODO: This is not listed on the spec. Is this correct??
 				if (si.BlockType[gr][ch] == 2) && (si.MixedBlockFlag[gr][ch] == 0) {
 					si.Region0Count[gr][ch] = 8 // Implicit
 				} else {

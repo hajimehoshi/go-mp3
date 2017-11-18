@@ -121,16 +121,13 @@ func (f *Frame) Decode() []byte {
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			f.requantize(gr, ch)
-			// Reorder short blocks
 			f.reorder(gr, ch)
 		}
 		f.stereo(gr)
 		for ch := 0; ch < nch; ch++ {
 			f.antialias(gr, ch)
-			// (IMDCT,windowing,overlapp add)
 			f.hybridSynthesis(gr, ch)
 			f.frequencyInversion(gr, ch)
-			// Polyphase subband synthesis
 			f.subbandSynthesis(gr, ch, out[consts.SamplesPerGr*4*gr:])
 		}
 	}
@@ -360,12 +357,7 @@ func (f *Frame) stereoProcessIntensityShort(gr int, sfb int) {
 }
 
 func (f *Frame) stereo(gr int) {
-	// Do nothing if joint stereo is not enabled
-	if (f.header.Mode() != 1) || (f.header.ModeExtension() == 0) {
-		return
-	}
-	// Do Middle/Side("normal") stereo processing
-	if (f.header.ModeExtension() & 0x2) != 0 {
+	if f.header.UseMSStereo() {
 		// Determine how many frequency lines to transform
 		i := 0
 		if f.sideInfo.Count1[gr][0] > f.sideInfo.Count1[gr][1] {
@@ -381,8 +373,8 @@ func (f *Frame) stereo(gr int) {
 			f.mainData.Is[gr][1][i] = right
 		}
 	}
-	// Do intensity stereo processing
-	if (f.header.ModeExtension() & 0x1) != 0 {
+
+	if f.header.UseIntensityStereo() {
 		// Setup sampling frequency index
 		sfreq := f.header.SamplingFrequency()
 		// First band that is intensity stereo encoded is first band scale factor
@@ -404,14 +396,14 @@ func (f *Frame) stereo(gr int) {
 				for sfb := 3; sfb < 12; sfb++ {
 					// Is this scale factor band above count1 for the right channel?
 					if consts.SfBandIndicesSet[sfreq].S[sfb]*3 >= f.sideInfo.Count1[gr][1] {
-						f.stereoProcessIntensityShort(gr, sfb) // intensity stereo processing
+						f.stereoProcessIntensityShort(gr, sfb)
 					}
 				}
 			} else { // Only short blocks
 				for sfb := 0; sfb < 12; sfb++ {
 					// Is this scale factor band above count1 for the right channel?
 					if consts.SfBandIndicesSet[sfreq].S[sfb]*3 >= f.sideInfo.Count1[gr][1] {
-						f.stereoProcessIntensityShort(gr, sfb) // intensity stereo processing
+						f.stereoProcessIntensityShort(gr, sfb)
 					}
 				}
 			}
@@ -419,7 +411,6 @@ func (f *Frame) stereo(gr int) {
 			for sfb := 0; sfb < 21; sfb++ {
 				// Is this scale factor band above count1 for the right channel?
 				if consts.SfBandIndicesSet[sfreq].L[sfb] >= f.sideInfo.Count1[gr][1] {
-					// Perform the intensity stereo processing
 					f.stereoProcessIntensityLong(gr, sfb)
 				}
 			}

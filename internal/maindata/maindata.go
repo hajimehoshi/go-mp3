@@ -74,7 +74,7 @@ func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, si
 			// Number of bits in the bitstream for the bands
 			slen1 := scalefacSizes[sideInfo.ScalefacCompress[gr][ch]][0]
 			slen2 := scalefacSizes[sideInfo.ScalefacCompress[gr][ch]][1]
-			if (sideInfo.WinSwitchFlag[gr][ch] != 0) && (sideInfo.BlockType[gr][ch] == 2) {
+			if sideInfo.WinSwitchFlag[gr][ch] == 1 && sideInfo.BlockType[gr][ch] == 2 {
 				if sideInfo.MixedBlockFlag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
@@ -101,46 +101,47 @@ func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, si
 						}
 					}
 				}
-			} else { // block_type == 0 if winswitch == 0
+			} else {
 				// Scale factor bands 0-5
-				if (sideInfo.Scfsi[ch][0] == 0) || (gr == 0) {
+				if sideInfo.Scfsi[ch][0] == 0 || gr == 0 {
 					for sfb := 0; sfb < 6; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
-				} else if (sideInfo.Scfsi[ch][0] == 1) && (gr == 1) {
+				} else if sideInfo.Scfsi[ch][0] == 1 && gr == 1 {
 					// Copy scalefactors from granule 0 to granule 1
+					// TODO: This is not listed on the spec.
 					for sfb := 0; sfb < 6; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 6-10
-				if (sideInfo.Scfsi[ch][1] == 0) || (gr == 0) {
+				if sideInfo.Scfsi[ch][1] == 0 || gr == 0 {
 					for sfb := 6; sfb < 11; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen1)
 					}
-				} else if (sideInfo.Scfsi[ch][1] == 1) && (gr == 1) {
+				} else if sideInfo.Scfsi[ch][1] == 1 && gr == 1 {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 6; sfb < 11; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 11-15
-				if (sideInfo.Scfsi[ch][2] == 0) || (gr == 0) {
+				if sideInfo.Scfsi[ch][2] == 0 || gr == 0 {
 					for sfb := 11; sfb < 16; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen2)
 					}
-				} else if (sideInfo.Scfsi[ch][2] == 1) && (gr == 1) {
+				} else if sideInfo.Scfsi[ch][2] == 1 && gr == 1 {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 11; sfb < 16; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 16-20
-				if (sideInfo.Scfsi[ch][3] == 0) || (gr == 0) {
+				if sideInfo.Scfsi[ch][3] == 0 || gr == 0 {
 					for sfb := 16; sfb < 21; sfb++ {
 						md.ScalefacL[gr][ch][sfb] = m.Bits(slen2)
 					}
-				} else if (sideInfo.Scfsi[ch][3] == 1) && (gr == 1) {
+				} else if sideInfo.Scfsi[ch][3] == 1 && gr == 1 {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 16; sfb < 21; sfb++ {
 						md.ScalefacL[1][ch][sfb] = md.ScalefacL[0][ch][sfb]
