@@ -108,7 +108,7 @@ func (s *source) getSideinfo(size int) (*bits.Bits, error) {
 	n, err := s.ReadFull(buf)
 	if n < size {
 		if err == io.EOF {
-			return nil, &unexpectedEOF{"getSideinfo"}
+			return nil, &consts.UnexpectedEOF{"getSideinfo"}
 		}
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes: %v",
 			size, err)

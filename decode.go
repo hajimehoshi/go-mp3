@@ -21,14 +21,6 @@ import (
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 )
 
-type unexpectedEOF struct {
-	At string
-}
-
-func (u *unexpectedEOF) Error() string {
-	return fmt.Sprintf("mp3: unexpected EOF at %s", u.At)
-}
-
 // A Decoder is a MP3-decoded stream.
 //
 // Decoder decodes its underlying source on the fly.
@@ -49,7 +41,7 @@ func (d *Decoder) readFrame() error {
 		if err == io.EOF {
 			return io.EOF
 		}
-		if _, ok := err.(*unexpectedEOF); ok {
+		if _, ok := err.(*consts.UnexpectedEOF); ok {
 			// TODO: Log here?
 			return io.EOF
 		}
@@ -166,7 +158,7 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 				if err == io.EOF {
 					break
 				}
-				if _, ok := err.(*unexpectedEOF); ok {
+				if _, ok := err.(*consts.UnexpectedEOF); ok {
 					// TODO: Log here?
 					break
 				}

@@ -134,7 +134,7 @@ func (s *source) readCRC() error {
 	n, err := s.ReadFull(buf)
 	if n < 2 {
 		if err == io.EOF {
-			return &unexpectedEOF{"readCRC"}
+			return &consts.UnexpectedEOF{"readCRC"}
 		}
 		return fmt.Errorf("mp3: error at readCRC: %v", err)
 	}
@@ -198,7 +198,7 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 				// Expected EOF
 				return 0, 0, io.EOF
 			}
-			return 0, 0, &unexpectedEOF{"readHeader (1)"}
+			return 0, 0, &consts.UnexpectedEOF{"readHeader (1)"}
 		}
 		return 0, 0, err
 	}
@@ -217,7 +217,7 @@ func (s *source) readHeader() (h frameheader.FrameHeader, startPosition int64, e
 		buf := make([]byte, 1)
 		if _, err := s.ReadFull(buf); err != nil {
 			if err == io.EOF {
-				return 0, 0, &unexpectedEOF{"readHeader (2)"}
+				return 0, 0, &consts.UnexpectedEOF{"readHeader (2)"}
 			}
 			return 0, 0, err
 		}

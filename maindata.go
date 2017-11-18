@@ -16,7 +16,6 @@ package mp3
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/hajimehoshi/go-mp3/internal/bits"
 	"github.com/hajimehoshi/go-mp3/internal/frameheader"
@@ -28,6 +27,7 @@ var mpeg1ScalefacSizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
+// TOOD: Move readMainL3 to internal/maindata
 func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sideInfo *mpeg1SideInfo) (*maindata.MainData, *bits.Bits, error) {
 	nch := header.NumberOfChannels()
 	// Calculate header audio data size
@@ -50,7 +50,7 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 	// two frames. main_data_begin indicates how many bytes from previous
 	// frames that should be used. This buffer is later accessed by the
 	// Bits function in the same way as the side info is.
-	m, err := s.getMainData(prev, main_data_size, sideInfo.main_data_begin)
+	m, err := maindata.Read(s, prev, main_data_size, sideInfo.main_data_begin)
 	if err != nil {
 		// This could be due to not enough data in reservoir
 		return nil, nil, err
@@ -143,42 +143,4 @@ func (s *source) readMainL3(prev *bits.Bits, header frameheader.FrameHeader, sid
 	}
 	// The ancillary data is stored here,but we ignore it.
 	return md, m, nil
-}
-
-func (s *source) getMainData(prev *bits.Bits, size int, offset int) (*bits.Bits, error) {
-	if size > 1500 {
-		return nil, fmt.Errorf("mp3: size = %d", size)
-	}
-	// Check that there's data available from previous frames if needed
-	if prev != nil && offset > prev.LenInBytes() {
-		// No, there is not, so we skip decoding this frame, but we have to
-		// read the main_data bits from the bitstream in case they are needed
-		// for decoding the next frame.
-		buf := make([]byte, size)
-		n, err := s.ReadFull(buf)
-		if n < size {
-			if err == io.EOF {
-				return nil, &unexpectedEOF{"getMainData (1)"}
-			}
-			return nil, err
-		}
-		// TODO: Define a special error and enable to continue the next frame.
-		return bits.Append(prev, buf), nil
-	}
-	// Copy data from previous frames
-	vec := []byte{}
-	if prev != nil {
-		vec = prev.Tail(offset)
-	}
-	// Read the main_data from file
-	buf := make([]byte, size)
-	n, err := s.ReadFull(buf)
-	if n < size {
-		if err == io.EOF {
-			return nil, &unexpectedEOF{"getMainData (2)"}
-		}
-		return nil, err
-	}
-	m := bits.New(append(vec, buf...))
-	return m, nil
 }

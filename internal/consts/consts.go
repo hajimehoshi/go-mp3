@@ -14,6 +14,18 @@
 
 package consts
 
+import (
+	"fmt"
+)
+
+type UnexpectedEOF struct {
+	At string
+}
+
+func (u *UnexpectedEOF) Error() string {
+	return fmt.Sprintf("mp3: unexpected EOF at %s", u.At)
+}
+
 type Version int
 
 const (
