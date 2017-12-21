@@ -33,6 +33,7 @@ type Decoder struct {
 	buf         []byte
 	frame       *frame.Frame
 	pos         int64
+	err         error
 }
 
 func (d *Decoder) readFrame() error {
@@ -54,6 +55,9 @@ func (d *Decoder) readFrame() error {
 
 // Read is io.Reader's Read.
 func (d *Decoder) Read(buf []byte) (int, error) {
+	if d.err != nil {
+		return 0, d.err
+	}
 	for len(d.buf) == 0 {
 		if err := d.readFrame(); err != nil {
 			return 0, err
@@ -69,6 +73,9 @@ func (d *Decoder) Read(buf []byte) (int, error) {
 //
 // Seek panics when the underlying source is not io.Seeker.
 func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
+	if d.err != nil {
+		return 0, d.err
+	}
 	npos := int64(0)
 	switch whence {
 	case io.SeekStart:
@@ -76,7 +83,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		npos = d.pos + offset
 	case io.SeekEnd:
-		npos = d.length + offset
+		npos = d.Length() + offset
 	default:
 		panic(fmt.Sprintf("mp3: invalid whence: %v", whence))
 	}
@@ -112,6 +119,9 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 
 // Close is io.Closer's Close.
 func (d *Decoder) Close() error {
+	if d.err != nil {
+		return d.err
+	}
 	return d.source.Close()
 }
 
@@ -122,39 +132,27 @@ func (d *Decoder) SampleRate() int {
 	return d.sampleRate
 }
 
+const invalidLength = -1
+
 // Length returns the total size in bytes.
 //
 // Length returns -1 when the total size is not available
 // e.g. when the given source is not io.Seeker.
 func (d *Decoder) Length() int64 {
-	return d.length
-}
-
-// NewDecoder decodes the given io.ReadCloser and returns a decoded stream.
-//
-// The stream is always formatted as 16bit (little endian) 2 channels
-// even if the source is single channel MP3.
-// Thus, a sample always consists of 4 bytes.
-//
-// If r is io.Seeker, a decoded stream checks its length and Length returns a valid value.
-func NewDecoder(r io.ReadCloser) (*Decoder, error) {
-	s := &source{
-		reader: r,
-	}
-	d := &Decoder{
-		source: s,
-		length: -1,
-	}
-	if _, ok := r.(io.Seeker); ok {
-		if err := s.skipTags(); err != nil {
-			return nil, err
+	if d.length == invalidLength {
+		if _, ok := d.source.reader.(io.Seeker); !ok {
+			return invalidLength
+		}
+		if err := d.source.skipTags(); err != nil {
+			d.err = err
+			return invalidLength
 		}
 		l := int64(0)
 		var f *frame.Frame
 		for {
 			var err error
 			pos := int64(0)
-			f, pos, err = frame.Read(s, s.pos, f)
+			f, pos, err = frame.Read(d.source, d.source.pos, f)
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -163,16 +161,35 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 					// TODO: Log here?
 					break
 				}
-				return nil, err
+				d.err = err
+				return invalidLength
 			}
 			d.frameStarts = append(d.frameStarts, pos)
 			l += consts.BytesPerFrame
 		}
-		if err := s.rewind(); err != nil {
-			return nil, err
+		if err := d.source.rewind(); err != nil {
+			d.err = err
+			return invalidLength
 		}
 		d.length = l
 	}
+	return d.length
+}
+
+// NewDecoder decodes the given io.ReadCloser and returns a decoded stream.
+//
+// The stream is always formatted as 16bit (little endian) 2 channels
+// even if the source is single channel MP3.
+// Thus, a sample always consists of 4 bytes.
+func NewDecoder(r io.ReadCloser) (*Decoder, error) {
+	s := &source{
+		reader: r,
+	}
+	d := &Decoder{
+		source: s,
+		length: invalidLength,
+	}
+
 	if err := s.skipTags(); err != nil {
 		return nil, err
 	}
