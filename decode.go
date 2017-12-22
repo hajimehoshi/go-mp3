@@ -140,9 +140,22 @@ const invalidLength = -1
 // e.g. when the given source is not io.Seeker.
 func (d *Decoder) Length() int64 {
 	if d.length == invalidLength {
-		if _, ok := d.source.reader.(io.Seeker); !ok {
+		s, ok := d.source.reader.(io.Seeker)
+		if !ok {
 			return invalidLength
 		}
+
+		// Keep the current position
+		pos, err := s.Seek(0, io.SeekCurrent)
+		if err != nil {
+			d.err = err
+			return invalidLength
+		}
+		if err := d.source.rewind(); err != nil {
+			d.err = err
+			return invalidLength
+		}
+
 		if err := d.source.skipTags(); err != nil {
 			d.err = err
 			return invalidLength
@@ -167,11 +180,12 @@ func (d *Decoder) Length() int64 {
 			d.frameStarts = append(d.frameStarts, pos)
 			l += consts.BytesPerFrame
 		}
-		if err := d.source.rewind(); err != nil {
+		d.length = l
+
+		if _, err := s.Seek(pos, io.SeekStart); err != nil {
 			d.err = err
 			return invalidLength
 		}
-		d.length = l
 	}
 	return d.length
 }
