@@ -149,52 +149,54 @@ const invalidLength = -1
 // Length returns -1 when the total size is not available
 // e.g. when the given source is not io.Seeker.
 func (d *Decoder) Length() int64 {
-	if d.length == invalidLength {
-		if _, ok := d.source.reader.(io.Seeker); !ok {
-			return invalidLength
-		}
+	if d.length != invalidLength {
+		return d.length
+	}
 
-		// Keep the current position.
-		pos, err := d.source.Seek(0, io.SeekCurrent)
+	if _, ok := d.source.reader.(io.Seeker); !ok {
+		return invalidLength
+	}
+
+	// Keep the current position.
+	pos, err := d.source.Seek(0, io.SeekCurrent)
+	if err != nil {
+		d.err = err
+		return invalidLength
+	}
+	if err := d.source.rewind(); err != nil {
+		d.err = err
+		return invalidLength
+	}
+
+	if err := d.source.skipTags(); err != nil {
+		d.err = err
+		return invalidLength
+	}
+	l := int64(0)
+	var f *frame.Frame
+	for {
+		var err error
+		pos := int64(0)
+		f, pos, err = frame.Read(d.source, d.source.pos, f)
 		if err != nil {
-			d.err = err
-			return invalidLength
-		}
-		if err := d.source.rewind(); err != nil {
-			d.err = err
-			return invalidLength
-		}
-
-		if err := d.source.skipTags(); err != nil {
-			d.err = err
-			return invalidLength
-		}
-		l := int64(0)
-		var f *frame.Frame
-		for {
-			var err error
-			pos := int64(0)
-			f, pos, err = frame.Read(d.source, d.source.pos, f)
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				if _, ok := err.(*consts.UnexpectedEOF); ok {
-					// TODO: Log here?
-					break
-				}
-				d.err = err
-				return invalidLength
+			if err == io.EOF {
+				break
 			}
-			d.frameStarts = append(d.frameStarts, pos)
-			l += consts.BytesPerFrame
-		}
-		d.length = l
-
-		if _, err := d.source.Seek(pos, io.SeekStart); err != nil {
+			if _, ok := err.(*consts.UnexpectedEOF); ok {
+				// TODO: Log here?
+				break
+			}
 			d.err = err
 			return invalidLength
 		}
+		d.frameStarts = append(d.frameStarts, pos)
+		l += consts.BytesPerFrame
+	}
+	d.length = l
+
+	if _, err := d.source.Seek(pos, io.SeekStart); err != nil {
+		d.err = err
+		return invalidLength
 	}
 	return d.length
 }
