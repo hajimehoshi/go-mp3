@@ -76,6 +76,11 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	if d.err != nil {
 		return 0, d.err
 	}
+
+	if err := d.ensureFrameStarts(); err != nil {
+		return 0, err
+	}
+
 	npos := int64(0)
 	switch whence {
 	case io.SeekStart:
@@ -132,6 +137,11 @@ func (d *Decoder) SampleRate() int {
 	return d.sampleRate
 }
 
+func (d *Decoder) ensureFrameStarts() error {
+	d.Length()
+	return d.err
+}
+
 const invalidLength = -1
 
 // Length returns the total size in bytes.
@@ -140,13 +150,12 @@ const invalidLength = -1
 // e.g. when the given source is not io.Seeker.
 func (d *Decoder) Length() int64 {
 	if d.length == invalidLength {
-		s, ok := d.source.reader.(io.Seeker)
-		if !ok {
+		if _, ok := d.source.reader.(io.Seeker); !ok {
 			return invalidLength
 		}
 
-		// Keep the current position
-		pos, err := s.Seek(0, io.SeekCurrent)
+		// Keep the current position.
+		pos, err := d.source.Seek(0, io.SeekCurrent)
 		if err != nil {
 			d.err = err
 			return invalidLength
@@ -182,7 +191,7 @@ func (d *Decoder) Length() int64 {
 		}
 		d.length = l
 
-		if _, err := s.Seek(pos, io.SeekStart); err != nil {
+		if _, err := d.source.Seek(pos, io.SeekStart); err != nil {
 			d.err = err
 			return invalidLength
 		}
