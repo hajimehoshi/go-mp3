@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frame"
+	"github.com/hajimehoshi/go-mp3/internal/frameheader"
 )
 
 // A Decoder is a MP3-decoded stream.
@@ -173,11 +174,8 @@ func (d *Decoder) Length() int64 {
 		return invalidLength
 	}
 	l := int64(0)
-	var f *frame.Frame
 	for {
-		var err error
-		pos := int64(0)
-		f, pos, err = frame.Read(d.source, d.source.pos, f)
+		h, pos, err := frameheader.Read(d.source, d.source.pos)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -191,6 +189,15 @@ func (d *Decoder) Length() int64 {
 		}
 		d.frameStarts = append(d.frameStarts, pos)
 		l += consts.BytesPerFrame
+
+		buf := make([]byte, h.FrameSize()-4)
+		if _, err := d.source.ReadFull(buf); err != nil {
+			if err == io.EOF {
+				break
+			}
+			d.err = err
+			return invalidLength
+		}
 	}
 	d.length = l
 
