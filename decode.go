@@ -34,7 +34,6 @@ type Decoder struct {
 	buf         []byte
 	frame       *frame.Frame
 	pos         int64
-	err         error
 }
 
 func (d *Decoder) readFrame() error {
@@ -56,9 +55,6 @@ func (d *Decoder) readFrame() error {
 
 // Read is io.Reader's Read.
 func (d *Decoder) Read(buf []byte) (int, error) {
-	if d.err != nil {
-		return 0, d.err
-	}
 	for len(d.buf) == 0 {
 		if err := d.readFrame(); err != nil {
 			return 0, err
@@ -74,14 +70,6 @@ func (d *Decoder) Read(buf []byte) (int, error) {
 //
 // Seek panics when the underlying source is not io.Seeker.
 func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
-	if d.err != nil {
-		return 0, d.err
-	}
-
-	if err := d.ensureFrameStarts(); err != nil {
-		return 0, err
-	}
-
 	npos := int64(0)
 	switch whence {
 	case io.SeekStart:
@@ -125,9 +113,6 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 
 // Close is io.Closer's Close.
 func (d *Decoder) Close() error {
-	if d.err != nil {
-		return d.err
-	}
 	return d.source.Close()
 }
 
@@ -138,40 +123,26 @@ func (d *Decoder) SampleRate() int {
 	return d.sampleRate
 }
 
-func (d *Decoder) ensureFrameStarts() error {
-	d.Length()
-	return d.err
-}
-
-const invalidLength = -1
-
-// Length returns the total size in bytes.
-//
-// Length returns -1 when the total size is not available
-// e.g. when the given source is not io.Seeker.
-func (d *Decoder) Length() int64 {
+func (d *Decoder) ensureFrameStartsAndLength() error {
 	if d.length != invalidLength {
-		return d.length
+		return nil
 	}
 
 	if _, ok := d.source.reader.(io.Seeker); !ok {
-		return invalidLength
+		return nil
 	}
 
 	// Keep the current position.
 	pos, err := d.source.Seek(0, io.SeekCurrent)
 	if err != nil {
-		d.err = err
-		return invalidLength
+		return err
 	}
 	if err := d.source.rewind(); err != nil {
-		d.err = err
-		return invalidLength
+		return err
 	}
 
 	if err := d.source.skipTags(); err != nil {
-		d.err = err
-		return invalidLength
+		return err
 	}
 	l := int64(0)
 	for {
@@ -184,8 +155,7 @@ func (d *Decoder) Length() int64 {
 				// TODO: Log here?
 				break
 			}
-			d.err = err
-			return invalidLength
+			return err
 		}
 		d.frameStarts = append(d.frameStarts, pos)
 		l += consts.BytesPerFrame
@@ -195,16 +165,24 @@ func (d *Decoder) Length() int64 {
 			if err == io.EOF {
 				break
 			}
-			d.err = err
-			return invalidLength
+			return err
 		}
 	}
 	d.length = l
 
 	if _, err := d.source.Seek(pos, io.SeekStart); err != nil {
-		d.err = err
-		return invalidLength
+		return err
 	}
+	return nil
+}
+
+const invalidLength = -1
+
+// Length returns the total size in bytes.
+//
+// Length returns -1 when the total size is not available
+// e.g. when the given source is not io.Seeker.
+func (d *Decoder) Length() int64 {
 	return d.length
 }
 
@@ -230,5 +208,10 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		return nil, err
 	}
 	d.sampleRate = d.frame.SamplingFrequency()
+
+	if err := d.ensureFrameStartsAndLength(); err != nil {
+		return nil, err
+	}
+
 	return d, nil
 }
