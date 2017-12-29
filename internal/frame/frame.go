@@ -29,7 +29,7 @@ import (
 
 var (
 	powtab34 = make([]float64, 8207)
-	pretab   = []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2}
+	pretab   = []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 0}
 )
 
 func init() {
@@ -139,12 +139,8 @@ func (f *Frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
-	tmp1 := 0.0
-	// https://github.com/technosaurus/PDMP3/issues/4
-	if sfb < 21 {
-		pf_x_pt := float64(f.sideInfo.Preflag[gr][ch]) * pretab[sfb]
-		tmp1 = math.Pow(2.0, -(sf_mult * (float64(f.mainData.ScalefacL[gr][ch][sfb]) + pf_x_pt)))
-	}
+	pf_x_pt := float64(f.sideInfo.Preflag[gr][ch]) * pretab[sfb]
+	tmp1 := math.Pow(2.0, -(sf_mult * (float64(f.mainData.ScalefacL[gr][ch][sfb]) + pf_x_pt)))
 	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.GlobalGain[gr][ch])-210))
 	tmp3 := 0.0
 	if f.mainData.Is[gr][ch][is_pos] < 0.0 {
@@ -160,11 +156,7 @@ func (f *Frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
-	tmp1 := 0.0
-	// https://github.com/technosaurus/PDMP3/issues/4
-	if sfb < 12 {
-		tmp1 = math.Pow(2.0, -(sf_mult * float64(f.mainData.ScalefacS[gr][ch][sfb][win])))
-	}
+	tmp1 := math.Pow(2.0, -(sf_mult * float64(f.mainData.ScalefacS[gr][ch][sfb][win])))
 	tmp2 := math.Pow(2.0, 0.25*(float64(f.sideInfo.GlobalGain[gr][ch])-210.0-
 		8.0*float64(f.sideInfo.SubblockGain[gr][ch][win])))
 	tmp3 := 0.0
