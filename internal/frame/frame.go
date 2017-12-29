@@ -665,8 +665,7 @@ func (f *Frame) subbandSynthesis(gr int, ch int, out []byte) {
 			} else if samp < -32767 {
 				samp = -32767
 			}
-			samp &= 0xffff
-			s := uint32(samp)
+			s := int16(samp)
 			if nch == 1 {
 				// We always run in stereo mode and duplicate channels here for mono.
 				out[4*(32*ss+i)] = byte(s)
