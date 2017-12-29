@@ -342,7 +342,7 @@ var huffmanMain = [...]huffTables{
 	{huffmanTable[2230:], 512, 11}, // Table 30
 	{huffmanTable[2230:], 512, 13}, // Table 31
 	{huffmanTable[2742:], 31, 0},   // Table 32
-	{huffmanTable[2261:], 31, 0},   // Table 33
+	{huffmanTable[2773:], 31, 0},   // Table 33
 }
 
 func Decode(m *bits.Bits, table_num int) (x, y, v, w int, err error) {
