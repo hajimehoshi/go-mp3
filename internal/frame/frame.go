@@ -139,7 +139,7 @@ func (f *Frame) requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
-	tmp1 := 1.0
+	tmp1 := 0.0
 	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 21 {
 		pf_x_pt := float64(f.sideInfo.Preflag[gr][ch]) * pretab[sfb]
@@ -160,7 +160,7 @@ func (f *Frame) requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	if f.sideInfo.ScalefacScale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
-	tmp1 := 1.0
+	tmp1 := 0.0
 	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 12 {
 		tmp1 = math.Pow(2.0, -(sf_mult * float64(f.mainData.ScalefacS[gr][ch][sfb][win])))
