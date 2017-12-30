@@ -265,9 +265,8 @@ func (f *Frame) reorder(gr int, ch int) {
 			// Check if we're into the next scalefac band
 			if i == next_sfb {
 				// Copy reordered data back to the original vector
-				for j := 0; j < 3*win_len; j++ {
-					f.mainData.Is[gr][ch][3*consts.SfBandIndicesSet[sfreq].S[sfb]+j] = re[j]
-				}
+				j := 3 * consts.SfBandIndicesSet[sfreq].S[sfb]
+				copy(f.mainData.Is[gr][ch][j:j+win_len], re[0:3*win_len])
 				// Check if this band is above the rzero region,if so we're done
 				if i >= f.sideInfo.Count1[gr][ch] {
 					return
@@ -284,9 +283,8 @@ func (f *Frame) reorder(gr int, ch int) {
 			}
 		}
 		// Copy reordered data of last band back to original vector
-		for j := 0; j < 3*win_len; j++ {
-			f.mainData.Is[gr][ch][3*consts.SfBandIndicesSet[sfreq].S[12]+j] = re[j]
-		}
+		j := 3 * consts.SfBandIndicesSet[sfreq].S[12]
+		copy(f.mainData.Is[gr][ch][j:j+3*win_len], re[0:3*win_len])
 	}
 }
 
@@ -298,8 +296,7 @@ func (f *Frame) stereoProcessIntensityLong(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
 	// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
-	is_pos := f.mainData.ScalefacL[gr][0][sfb]
-	if is_pos != 7 {
+	if is_pos := f.mainData.ScalefacL[gr][0][sfb]; is_pos != 7 {
 		sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 		sfb_start := consts.SfBandIndicesSet[sfreq].L[sfb]
 		sfb_stop := consts.SfBandIndicesSet[sfreq].L[sfb+1]
@@ -623,9 +620,7 @@ func (f *Frame) subbandSynthesis(gr int, ch int, out []byte) {
 	nch := f.header.NumberOfChannels()
 	// Setup the n_win windowing vector and the v_vec intermediate vector
 	for ss := 0; ss < 18; ss++ { // Loop through 18 samples in 32 subbands
-		for i := 1023; i > 63; i-- { // Shift up the V vector
-			f.v_vec[ch][i] = f.v_vec[ch][i-64]
-		}
+		copy(f.v_vec[ch][64:1024], f.v_vec[ch][0:1024-64])
 		for i := 0; i < 32; i++ { // Copy next 32 time samples to a temp vector
 			s_vec[i] = f.mainData.Is[gr][ch][i*18+ss]
 		}
