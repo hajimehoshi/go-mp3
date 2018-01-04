@@ -215,3 +215,8 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 
 	return d, nil
 }
+
+// Decode decodes all mp3 data from d into dst - memory usage can be large, use with caution
+func (d *Decoder) Decode(dst io.Writer) (int64, error) {
+	return io.Copy(dst, d)
+}
