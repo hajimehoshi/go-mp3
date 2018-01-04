@@ -34,6 +34,7 @@ type Decoder struct {
 	buf         []byte
 	frame       *frame.Frame
 	pos         int64
+	channels    int
 }
 
 func (d *Decoder) readFrame() error {
@@ -123,6 +124,11 @@ func (d *Decoder) SampleRate() int {
 	return d.sampleRate
 }
 
+// NumberOfChannels returns the number of audio channels.
+func (d *Decoder) NumberOfChannels() int {
+	return d.channels
+}
+
 func (d *Decoder) ensureFrameStartsAndLength() error {
 	if d.length != invalidLength {
 		return nil
@@ -208,6 +214,7 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		return nil, err
 	}
 	d.sampleRate = d.frame.SamplingFrequency()
+	d.channels = d.frame.NumberOfChannels()
 
 	if err := d.ensureFrameStartsAndLength(); err != nil {
 		return nil, err
