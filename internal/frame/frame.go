@@ -268,7 +268,7 @@ func (f *Frame) reorder(gr int, ch int) {
 			if i == next_sfb {
 				// Copy reordered data back to the original vector
 				j := 3 * consts.SfBandIndicesSet[sfreq].S[sfb]
-				copy(f.mainData.Is[gr][ch][j:j+win_len], re[0:3*win_len])
+				copy(f.mainData.Is[gr][ch][j:j+3*win_len], re[0:3*win_len])
 				// Check if this band is above the rzero region,if so we're done
 				if i >= f.sideInfo.Count1[gr][ch] {
 					return
