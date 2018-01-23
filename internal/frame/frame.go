@@ -633,19 +633,18 @@ func (f *Frame) subbandSynthesis(gr int, ch int, out []byte) {
 			}
 			f.v_vec[ch][i] = sum
 		}
-		for i := 0; i < 8; i++ { // Build the U vector
-			for j := 0; j < 32; j++ { // <<7 == *128
-				u_vec[(i<<6)+j] = f.v_vec[ch][(i<<7)+j]
-				u_vec[(i<<6)+j+32] = f.v_vec[ch][(i<<7)+j+96]
-			}
+		v := f.v_vec[ch]
+		for i := 0; i < 512; i += 64 { // Build the U vector
+			copy(u_vec[i:i+32], v[(i<<1):(i<<1)+32])
+			copy(u_vec[i+32:i+64], v[(i<<1)+96:(i<<1)+128])
 		}
 		for i := 0; i < 512; i++ { // Window by u_vec[i] with synthDtbl[i]
 			u_vec[i] *= synthDtbl[i]
 		}
 		for i := 0; i < 32; i++ { // Calc 32 samples,store in outdata vector
 			sum := float32(0)
-			for j := 0; j < 16; j++ { // sum += u_vec[j*32 + i];
-				sum += u_vec[(j<<5)+i]
+			for j := 0; j < 512; j += 32 {
+				sum += u_vec[j+i]
 			}
 			// sum now contains time sample 32*ss+i. Convert to 16-bit signed int
 			samp := int(sum * 32767)
@@ -655,20 +654,21 @@ func (f *Frame) subbandSynthesis(gr int, ch int, out []byte) {
 				samp = -32767
 			}
 			s := int16(samp)
+			idx := 4 * (32*ss + i)
 			if nch == 1 {
 				// We always run in stereo mode and duplicate channels here for mono.
-				out[4*(32*ss+i)] = byte(s)
-				out[4*(32*ss+i)+1] = byte(s >> 8)
-				out[4*(32*ss+i)+2] = byte(s)
-				out[4*(32*ss+i)+3] = byte(s >> 8)
+				out[idx] = byte(s)
+				out[idx+1] = byte(s >> 8)
+				out[idx+2] = byte(s)
+				out[idx+3] = byte(s >> 8)
 				continue
 			}
 			if ch == 0 {
-				out[4*(32*ss+i)] = byte(s)
-				out[4*(32*ss+i)+1] = byte(s >> 8)
+				out[idx] = byte(s)
+				out[idx+1] = byte(s >> 8)
 			} else {
-				out[4*(32*ss+i)+2] = byte(s)
-				out[4*(32*ss+i)+3] = byte(s >> 8)
+				out[idx+2] = byte(s)
+				out[idx+3] = byte(s >> 8)
 			}
 		}
 	}
