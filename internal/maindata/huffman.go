@@ -59,6 +59,10 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinf
 	}
 	// Read big_values using tables according to region_x_start
 	for is_pos := 0; is_pos < sideInfo.BigValues[gr][ch]*2; is_pos++ {
+		// #22
+		if is_pos >= len(mainData.Is[gr][ch]) {
+			return fmt.Errorf("mp3: is_pos was too big: %d", is_pos)
+		}
 		table_num := 0
 		if is_pos < region_1_start {
 			table_num = sideInfo.TableSelect[gr][ch][0]

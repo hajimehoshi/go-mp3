@@ -27,8 +27,9 @@ func (b *bytesReadCloser) Close() error {
 	return nil
 }
 
-func TestFuzzingIssue3(t *testing.T) {
+func TestFuzzing(t *testing.T) {
 	inputs := []string{
+		// #3
 		"\xff\xfa500000000000\xff\xff0000" +
 			"00000000000000000000" +
 			"00000000000000000000" +
@@ -75,6 +76,13 @@ func TestFuzzingIssue3(t *testing.T) {
 			"\xee\u007f\xff\xff\u007f\xff\xff\u007f\xff\xff\xfc\xee\xff\xef\xbf0\xef\xbf00" +
 			"0\xff\xee\u007f\xff\xff\u007f\xff\xff\xee\u007f\xff\xff\u007f\xff\xff\u007f\xff0\t" +
 			"\xff\xff\xee\xee",
+		// #22
+		"\xff\xfa%00000000000000000" +
+			"000000000000s0000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000" +
+			"00000000000000000000",
 	}
 	for _, input := range inputs {
 		b := &bytesReadCloser{bytes.NewReader([]byte(input))}

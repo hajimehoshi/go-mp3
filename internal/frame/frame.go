@@ -623,8 +623,9 @@ func (f *Frame) subbandSynthesis(gr int, ch int, out []byte) {
 	// Setup the n_win windowing vector and the v_vec intermediate vector
 	for ss := 0; ss < 18; ss++ { // Loop through 18 samples in 32 subbands
 		copy(f.v_vec[ch][64:1024], f.v_vec[ch][0:1024-64])
+		d := f.mainData.Is[gr][ch]
 		for i := 0; i < 32; i++ { // Copy next 32 time samples to a temp vector
-			s_vec[i] = f.mainData.Is[gr][ch][i*18+ss]
+			s_vec[i] = d[i*18+ss]
 		}
 		for i := 0; i < 64; i++ { // Matrix multiply input with n_win[][] matrix
 			sum := float32(0)
