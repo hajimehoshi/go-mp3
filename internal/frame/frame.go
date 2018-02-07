@@ -327,7 +327,7 @@ func (f *Frame) stereoProcessIntensityShort(gr int, sfb int) {
 	for win := 0; win < 3; win++ {
 		// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
 		is_pos := f.mainData.ScalefacS[gr][0][sfb][win]
-		if is_pos != 7 {
+		if is_pos < 7 {
 			sfb_start := consts.SfBandIndicesSet[sfreq].S[sfb]*3 + win_len*win
 			sfb_stop := sfb_start + win_len
 			if is_pos == 6 { // tan((6*PI)/12 = PI/2) needs special treatment!
