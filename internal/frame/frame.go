@@ -297,8 +297,8 @@ var (
 func (f *Frame) stereoProcessIntensityLong(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
-	// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
-	if is_pos := f.mainData.ScalefacL[gr][0][sfb]; is_pos != 7 {
+	// Check that((is_pos[sfb]=scalefac) < 7) => no intensity stereo
+	if is_pos := f.mainData.ScalefacL[gr][0][sfb]; is_pos < 7 {
 		sfreq := f.header.SamplingFrequency() // Setup sampling freq index
 		sfb_start := consts.SfBandIndicesSet[sfreq].L[sfb]
 		sfb_stop := consts.SfBandIndicesSet[sfreq].L[sfb+1]
@@ -325,7 +325,7 @@ func (f *Frame) stereoProcessIntensityShort(gr int, sfb int) {
 	win_len := consts.SfBandIndicesSet[sfreq].S[sfb+1] - consts.SfBandIndicesSet[sfreq].S[sfb]
 	// The three windows within the band has different scalefactors
 	for win := 0; win < 3; win++ {
-		// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
+		// Check that((is_pos[sfb]=scalefac) < 7) => no intensity stereo
 		is_pos := f.mainData.ScalefacS[gr][0][sfb][win]
 		if is_pos < 7 {
 			sfb_start := consts.SfBandIndicesSet[sfreq].S[sfb]*3 + win_len*win
