@@ -111,6 +111,11 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	return npos, nil
 }
 
+// Position return current position
+func (d *Decoder) Position() int64 {
+	return d.pos
+}
+
 // Close is io.Closer's Close.
 func (d *Decoder) Close() error {
 	return d.source.Close()
