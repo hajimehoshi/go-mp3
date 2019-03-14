@@ -19,28 +19,18 @@ import (
 )
 
 type source struct {
-	reader io.ReadCloser
+	reader io.ReadSeeker
 	buf    []byte
 	pos    int64
 }
 
 func (s *source) Seek(position int64, whence int) (int64, error) {
-	seeker, ok := s.reader.(io.Seeker)
-	if !ok {
-		panic("mp3: source must be io.Seeker")
-	}
-	s.buf = nil
-	n, err := seeker.Seek(position, whence)
+	n, err := s.reader.Seek(position, whence)
 	if err != nil {
 		return 0, err
 	}
 	s.pos = n
 	return n, nil
-}
-
-func (s *source) Close() error {
-	s.buf = nil
-	return s.reader.Close()
 }
 
 func (s *source) skipTags() error {

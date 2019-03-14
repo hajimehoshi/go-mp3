@@ -111,11 +111,6 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	return npos, nil
 }
 
-// Close is io.Closer's Close.
-func (d *Decoder) Close() error {
-	return d.source.Close()
-}
-
 // SampleRate returns the sample rate like 44100.
 //
 // Note that the sample rate is retrieved from the first frame.
@@ -186,12 +181,12 @@ func (d *Decoder) Length() int64 {
 	return d.length
 }
 
-// NewDecoder decodes the given io.ReadCloser and returns a decoded stream.
+// NewDecoder decodes the given io.ReadSeeker and returns a decoded stream.
 //
 // The stream is always formatted as 16bit (little endian) 2 channels
 // even if the source is single channel MP3.
 // Thus, a sample always consists of 4 bytes.
-func NewDecoder(r io.ReadCloser) (*Decoder, error) {
+func NewDecoder(r io.ReadSeeker) (*Decoder, error) {
 	s := &source{
 		reader: r,
 	}
