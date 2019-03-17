@@ -19,14 +19,6 @@ import (
 	"testing"
 )
 
-type bytesReadCloser struct {
-	*bytes.Reader
-}
-
-func (b *bytesReadCloser) Close() error {
-	return nil
-}
-
 func TestFuzzing(t *testing.T) {
 	inputs := []string{
 		// #3
@@ -109,7 +101,7 @@ func TestFuzzing(t *testing.T) {
 			"0000000000000",
 	}
 	for _, input := range inputs {
-		b := &bytesReadCloser{bytes.NewReader([]byte(input))}
+		b := bytes.NewReader([]byte(input))
 		_, _ = NewDecoder(b)
 	}
 }
