@@ -181,7 +181,7 @@ func (d *Decoder) Length() int64 {
 	return d.length
 }
 
-// NewDecoder decodes the given io.ReadSeeker and returns a decoded stream.
+// NewDecoder decodes the given io.Reader and returns a decoded stream.
 //
 // The stream is always formatted as 16bit (little endian) 2 channels
 // even if the source is single channel MP3.
