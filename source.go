@@ -19,7 +19,7 @@ import (
 )
 
 type source struct {
-	reader io.ReadCloser
+	reader io.Reader
 	buf    []byte
 	pos    int64
 }
@@ -36,11 +36,6 @@ func (s *source) Seek(position int64, whence int) (int64, error) {
 	}
 	s.pos = n
 	return n, nil
-}
-
-func (s *source) Close() error {
-	s.buf = nil
-	return s.reader.Close()
 }
 
 func (s *source) skipTags() error {

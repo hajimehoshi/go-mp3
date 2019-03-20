@@ -26,7 +26,7 @@ func BenchmarkDecode(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	src := &bytesReadCloser{bytes.NewReader(buf)}
+	src := bytes.NewReader(buf)
 	for i := 0; i < b.N; i++ {
 		if _, err := src.Seek(0, io.SeekStart); err != nil {
 			b.Fatal(err)
