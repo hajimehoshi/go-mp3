@@ -111,11 +111,6 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	return npos, nil
 }
 
-// Close is io.Closer's Close. Close does nothing and always returns nil.
-func (d *Decoder) Close() error {
-	return nil
-}
-
 // SampleRate returns the sample rate like 44100.
 //
 // Note that the sample rate is retrieved from the first frame.
