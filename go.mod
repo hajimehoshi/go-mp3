@@ -1,3 +1,5 @@
 module github.com/hajimehoshi/go-mp3
 
-require github.com/hajimehoshi/oto v0.3.4
+go 1.14
+
+require github.com/hajimehoshi/oto v0.5.4

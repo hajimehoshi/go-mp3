@@ -39,10 +39,13 @@ func run() error {
 		return err
 	}
 
-	p, err := oto.NewPlayer(d.SampleRate(), 2, 2, 8192)
+	c, err := oto.NewContext(d.SampleRate(), 2, 2, 8192)
 	if err != nil {
 		return err
 	}
+	defer c.Close()
+
+	p := c.NewPlayer()
 	defer p.Close()
 
 	fmt.Printf("Length: %d[bytes]\n", d.Length())
