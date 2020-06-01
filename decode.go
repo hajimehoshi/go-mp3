@@ -27,13 +27,14 @@ import (
 //
 // Decoder decodes its underlying source on the fly.
 type Decoder struct {
-	source      *source
-	sampleRate  int
-	length      int64
-	frameStarts []int64
-	buf         []byte
-	frame       *frame.Frame
-	pos         int64
+	source        *source
+	sampleRate    int
+	length        int64
+	frameStarts   []int64
+	buf           []byte
+	frame         *frame.Frame
+	pos           int64
+	bytesPerFrame int64
 }
 
 func (d *Decoder) readFrame() error {
@@ -84,7 +85,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	d.pos = npos
 	d.buf = nil
 	d.frame = nil
-	f := d.pos / consts.BytesPerFrame
+	f := d.pos / d.bytesPerFrame
 	// If the frame is not first, read the previous ahead of reading that
 	// because the previous frame can affect the targeted frame.
 	if f > 0 {
@@ -98,7 +99,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 		if err := d.readFrame(); err != nil {
 			return 0, err
 		}
-		d.buf = d.buf[consts.BytesPerFrame+(d.pos%consts.BytesPerFrame):]
+		d.buf = d.buf[d.bytesPerFrame+(d.pos%d.bytesPerFrame):]
 	} else {
 		if _, err := d.source.Seek(d.frameStarts[f], 0); err != nil {
 			return 0, err
@@ -153,7 +154,8 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 			return err
 		}
 		d.frameStarts = append(d.frameStarts, pos)
-		l += consts.BytesPerFrame
+		d.bytesPerFrame = int64(h.BytesPerFrame())
+		l += d.bytesPerFrame
 
 		buf := make([]byte, h.FrameSize()-4)
 		if _, err := d.source.ReadFull(buf); err != nil {

@@ -53,18 +53,23 @@ type SideInfo struct {
 	Count1            [2][2]int // Not in file, calc by huffman decoder
 }
 
+var sideInfoBitsToRead = [2][4]int{
+	{ // MPEG 1
+		9, 5, 3, 4,
+	},
+	{ // MPEG 2
+		8, 1, 2, 9,
+	},
+}
+
 func Read(source FullReader, header frameheader.FrameHeader) (*SideInfo, error) {
 	nch := header.NumberOfChannels()
-	// Calculate header audio data size
 	framesize := header.FrameSize()
 	if framesize > 2000 {
 		return nil, fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
-	// Sideinfo is 17 bytes for one channel and 32 bytes for two
-	sideinfo_size := 32
-	if nch == 1 {
-		sideinfo_size = 17
-	}
+	sideinfo_size := header.SideInfoSize()
+
 	// Main data size is the rest of the frame,including ancillary data
 	main_data_size := framesize - sideinfo_size - 4 // sync+header
 	// CRC is 2 bytes
@@ -82,29 +87,35 @@ func Read(source FullReader, header frameheader.FrameHeader) (*SideInfo, error) 
 	}
 	s := bits.New(buf)
 
+	mpeg1Frame := header.LowSamplingFrequency() == 0
+	bitsToRead := sideInfoBitsToRead[header.LowSamplingFrequency()]
+
 	// Parse audio data
 	// Pointer to where we should start reading main data
 	si := &SideInfo{}
-	si.MainDataBegin = s.Bits(9)
+	si.MainDataBegin = s.Bits(bitsToRead[0])
 	// Get private bits. Not used for anything.
 	if header.Mode() == consts.ModeSingleChannel {
-		si.PrivateBits = s.Bits(5)
+		si.PrivateBits = s.Bits(bitsToRead[1])
 	} else {
-		si.PrivateBits = s.Bits(3)
+		si.PrivateBits = s.Bits(bitsToRead[2])
 	}
-	// Get scale factor selection information
-	for ch := 0; ch < nch; ch++ {
-		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
-			si.Scfsi[ch][scfsi_band] = s.Bits(1)
+
+	if mpeg1Frame {
+		// Get scale factor selection information
+		for ch := 0; ch < nch; ch++ {
+			for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
+				si.Scfsi[ch][scfsi_band] = s.Bits(1)
+			}
 		}
 	}
 	// Get the rest of the side information
-	for gr := 0; gr < 2; gr++ {
+	for gr := 0; gr < header.Granules(); gr++ {
 		for ch := 0; ch < nch; ch++ {
 			si.Part2_3Length[gr][ch] = s.Bits(12)
 			si.BigValues[gr][ch] = s.Bits(9)
 			si.GlobalGain[gr][ch] = s.Bits(8)
-			si.ScalefacCompress[gr][ch] = s.Bits(4)
+			si.ScalefacCompress[gr][ch] = s.Bits(bitsToRead[3])
 			si.WinSwitchFlag[gr][ch] = s.Bits(1)
 			if si.WinSwitchFlag[gr][ch] == 1 {
 				si.BlockType[gr][ch] = s.Bits(2)
@@ -132,8 +143,13 @@ func Read(source FullReader, header frameheader.FrameHeader) (*SideInfo, error) 
 				si.Region0Count[gr][ch] = s.Bits(4)
 				si.Region1Count[gr][ch] = s.Bits(3)
 				si.BlockType[gr][ch] = 0 // Implicit
+				if !mpeg1Frame {
+					si.MixedBlockFlag[0][ch] = 0
+				}
 			}
-			si.Preflag[gr][ch] = s.Bits(1)
+			if mpeg1Frame {
+				si.Preflag[gr][ch] = s.Bits(1)
+			}
 			si.ScalefacScale[gr][ch] = s.Bits(1)
 			si.Count1TableSelect[gr][ch] = s.Bits(1)
 		}

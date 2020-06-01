@@ -43,7 +43,8 @@ func readHuffman(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinf
 		region_2_start = consts.SamplesPerGr // No Region2 for short block case.
 	} else {
 		sfreq := header.SamplingFrequency()
-		l := consts.SfBandIndicesSet[sfreq].L
+		lsf := header.LowSamplingFrequency()
+		l := consts.SfBandIndices[lsf][sfreq][consts.SfBandIndicesLong]
 		i := sideInfo.Region0Count[gr][ch] + 1
 		if i < 0 || len(l) <= i {
 			// TODO: Better error messages (#3)
