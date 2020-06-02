@@ -35,9 +35,47 @@ type MainData struct {
 	Is        [2][2][576]float32 // Huffman coded freq. lines
 }
 
-var scalefacSizes = [16][2]int{
+var scalefacSizesMpeg1 = [16][2]int{
 	{0, 0}, {0, 1}, {0, 2}, {0, 3}, {3, 0}, {1, 1}, {1, 2}, {1, 3},
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
+}
+
+var scalefacSizesMpeg2 = [3][6][4]int{
+	{{6, 5, 5, 5}, {6, 5, 7, 3}, {11, 10, 0, 0},
+		{7, 7, 7, 0}, {6, 6, 6, 3}, {8, 8, 5, 0}},
+	{{9, 9, 9, 9}, {9, 9, 12, 6}, {18, 18, 0, 0},
+		{12, 12, 12, 0}, {12, 9, 9, 6}, {15, 12, 9, 0}},
+	{{6, 9, 9, 9}, {6, 9, 12, 6}, {15, 18, 0, 0},
+		{6, 15, 12, 0}, {6, 12, 9, 6}, {6, 18, 9, 0}}}
+
+var nSlen2 [512]int /* MPEG 2.0 slen for 'normal' mode */
+
+func initSlen() {
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 3; j++ {
+			n := j + i*3
+			nSlen2[n+500] = i | (j << 3) | (2 << 12) | (1 << 15)
+		}
+	}
+
+	for i := 0; i < 5; i++ {
+		for j := 0; j < 5; j++ {
+			for k := 0; k < 4; k++ {
+				for l := 0; l < 4; l++ {
+					n := l + k*4 + j*16 + i*80
+					nSlen2[n] = i | (j << 3) | (k << 6) | (l << 9) | (0 << 12)
+				}
+			}
+		}
+	}
+	for i := 0; i < 5; i++ {
+		for j := 0; j < 5; j++ {
+			for k := 0; k < 4; k++ {
+				n := k + j*4 + i*20
+				nSlen2[n+400] = i | (j << 3) | (k << 6) | (1 << 12)
+			}
+		}
+	}
 }
 
 func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*MainData, *bits.Bits, error) {
@@ -48,10 +86,8 @@ func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, si
 		return nil, nil, fmt.Errorf("mp3: framesize = %d", framesize)
 	}
 	// Sideinfo is 17 bytes for one channel and 32 bytes for two
-	sideinfo_size := 32
-	if nch == 1 {
-		sideinfo_size = 17
-	}
+	sideinfo_size := header.SideInfoSize()
+
 	// Main data size is the rest of the frame,including ancillary data
 	main_data_size := framesize - sideinfo_size - 4 // sync+header
 	// CRC is 2 bytes
@@ -67,13 +103,89 @@ func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, si
 		// This could be due to not enough data in reservoir
 		return nil, nil, err
 	}
+
+	if header.LowSamplingFrequency() == 1 {
+		return getScaleFactorsMpeg2(m, header, sideInfo)
+	}
+	return getScaleFactorsMpeg1(nch, m, header, sideInfo)
+}
+
+func getScaleFactorsMpeg2(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*MainData, *bits.Bits, error) {
+
+	nch := header.NumberOfChannels()
+
+	if nSlen2[1] == 0 {
+		initSlen()
+	}
+
+	md := &MainData{}
+
+	for ch := 0; ch < nch; ch++ {
+		part_2_start := m.BitPos()
+		numbits := 0
+		slen := nSlen2[sideInfo.ScalefacCompress[0][ch]]
+		sideInfo.Preflag[0][ch] = (slen >> 15) & 0x1
+
+		n := 0
+		if sideInfo.BlockType[0][ch] == 2 {
+			n++
+			if sideInfo.MixedBlockFlag[0][ch] != 0 {
+				n++
+			}
+		}
+
+		var scaleFactors []int
+		d := (slen >> 12) & 0x7
+
+		for i := 0; i < 4; i++ {
+			num := slen & 0x7
+			slen >>= 3
+			if num > 0 {
+				for j := 0; j < scalefacSizesMpeg2[n][d][i]; j++ {
+					scaleFactors = append(scaleFactors, m.Bits(num))
+				}
+				numbits += scalefacSizesMpeg2[n][d][i] * num
+			} else {
+				for j := 0; j < scalefacSizesMpeg2[n][d][i]; j++ {
+					scaleFactors = append(scaleFactors, 0)
+				}
+			}
+		}
+
+		n = (n << 1) + 1
+		for i := 0; i < n; i++ {
+			scaleFactors = append(scaleFactors, 0)
+		}
+
+		if len(scaleFactors) == 22 {
+			for i := 0; i < 22; i++ {
+				md.ScalefacL[0][ch][i] = scaleFactors[i]
+			}
+		} else {
+			for x := 0; x < 13; x++ {
+				for i := 0; i < 3; i++ {
+					md.ScalefacS[0][ch][x][i] = scaleFactors[(x*3)+i]
+				}
+			}
+		}
+
+		// Read Huffman coded data. Skip stuffing bits.
+		if err := readHuffman(m, header, sideInfo, md, part_2_start, 0, ch); err != nil {
+			return nil, nil, err
+		}
+	}
+	// The ancillary data is stored here,but we ignore it.
+	return md, m, nil
+}
+
+func getScaleFactorsMpeg1(nch int, m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*MainData, *bits.Bits, error) {
 	md := &MainData{}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			part_2_start := m.BitPos()
 			// Number of bits in the bitstream for the bands
-			slen1 := scalefacSizes[sideInfo.ScalefacCompress[gr][ch]][0]
-			slen2 := scalefacSizes[sideInfo.ScalefacCompress[gr][ch]][1]
+			slen1 := scalefacSizesMpeg1[sideInfo.ScalefacCompress[gr][ch]][0]
+			slen2 := scalefacSizesMpeg1[sideInfo.ScalefacCompress[gr][ch]][1]
 			if sideInfo.WinSwitchFlag[gr][ch] == 1 && sideInfo.BlockType[gr][ch] == 2 {
 				if sideInfo.MixedBlockFlag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {

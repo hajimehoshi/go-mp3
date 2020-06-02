@@ -49,6 +49,18 @@ func (f FrameHeader) SamplingFrequency() consts.SamplingFrequency {
 	return consts.SamplingFrequency(int(f&0x00000c00) >> 10)
 }
 
+func (f FrameHeader) SamplingFrequencyValue() int {
+	switch f.SamplingFrequency() {
+	case 0:
+		return 44100 >> f.LowSamplingFrequency()
+	case 1:
+		return 48000 >> f.LowSamplingFrequency()
+	case 2:
+		return 32000 >> f.LowSamplingFrequency()
+	}
+	panic("not reached")
+}
+
 // PaddingBit returns the padding bit stored in position 9
 func (f FrameHeader) PaddingBit() int {
 	return int(f&0x00000200) >> 9
@@ -101,6 +113,22 @@ func (f FrameHeader) Emphasis() int {
 	return int(f&0x00000003) >> 0
 }
 
+// LowSamplingFrequency returns whether the frame is encoded in a low sampling frequency => 0 = MPEG-1, 1 = MPEG-2/2.5
+func (f FrameHeader) LowSamplingFrequency() int {
+	if f.ID() == consts.Version1 {
+		return 0
+	}
+	return 1
+}
+
+func (f FrameHeader) BytesPerFrame() int {
+	return consts.SamplesPerGr * f.Granules() * 4
+}
+
+func (f FrameHeader) Granules() int {
+	return consts.GranulesMpeg1 >> f.LowSamplingFrequency() // MPEG2 uses only 1 granule
+}
+
 // IsValid returns a boolean value indicating whether the header is valid or not.
 func (f FrameHeader) IsValid() bool {
 	const sync = 0xffe00000
@@ -125,28 +153,61 @@ func (f FrameHeader) IsValid() bool {
 	return true
 }
 
-func bitrate(layer consts.Layer, index int) int {
-	switch layer {
-	case consts.Layer1:
-		return []int{
-			0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
-			256000, 288000, 320000, 352000, 384000, 416000, 448000}[index]
-	case consts.Layer2:
-		return []int{
-			0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
-			128000, 160000, 192000, 224000, 256000, 320000, 384000}[index]
-	case consts.Layer3:
-		return []int{
-			0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
-			112000, 128000, 160000, 192000, 224000, 256000, 320000}[index]
+func (f FrameHeader) Bitrate() int {
+	bitrates := [2][3][16]int{
+		{
+			// MPEG 1 Layer 3
+			{0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
+				112000, 128000, 160000, 192000, 224000, 256000, 320000},
+
+			// MPEG 1 Layer 2
+			{0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
+				128000, 160000, 192000, 224000, 256000, 320000, 384000},
+
+			// MPEG 1 Layer 1
+			{0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
+				256000, 288000, 320000, 352000, 384000, 416000, 448000},
+		},
+		{
+			// MPEG2 2 Layer 3
+			{0, 8000, 16000, 24000, 32000, 40000, 48000, 56000,
+				64000, 80000, 96000, 112000, 128000, 144000, 160000},
+
+			// MPEG 2 Layer 2
+			{0, 8000, 16000, 24000, 32000, 40000, 48000, 56000,
+				64000, 80000, 96000, 112000, 128000, 144000, 160000},
+
+			// MPEG 2 Layer 1
+			{0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
+				128000, 144000, 160000, 176000, 192000, 224000, 256000},
+		},
 	}
-	panic("not reached")
+	return bitrates[f.LowSamplingFrequency()][f.Layer()-1][f.BitrateIndex()]
 }
 
 func (f FrameHeader) FrameSize() int {
-	return (144*bitrate(f.Layer(), f.BitrateIndex()))/
-		f.SamplingFrequency().Int() +
-		int(f.PaddingBit())
+	return ((144*f.Bitrate())/
+		f.SamplingFrequencyValue() +
+		int(f.PaddingBit())) >> f.LowSamplingFrequency()
+}
+
+func (f FrameHeader) SideInfoSize() int {
+	mono := f.Mode() == consts.ModeSingleChannel
+	var sideinfo_size int
+	if f.LowSamplingFrequency() == 1 {
+		if mono {
+			sideinfo_size = 9
+		} else {
+			sideinfo_size = 17
+		}
+	} else {
+		if mono {
+			sideinfo_size = 17
+		} else {
+			sideinfo_size = 32
+		}
+	}
+	return sideinfo_size
 }
 
 func (f FrameHeader) NumberOfChannels() int {
