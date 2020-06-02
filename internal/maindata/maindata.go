@@ -85,7 +85,6 @@ func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, si
 	if framesize > 2000 {
 		return nil, nil, fmt.Errorf("mp3: framesize = %d", framesize)
 	}
-	// Sideinfo is 17 bytes for one channel and 32 bytes for two
 	sideinfo_size := header.SideInfoSize()
 
 	// Main data size is the rest of the frame,including ancillary data
