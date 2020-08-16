@@ -52,11 +52,11 @@ func (f FrameHeader) SamplingFrequency() consts.SamplingFrequency {
 func (f FrameHeader) SamplingFrequencyValue() int {
 	switch f.SamplingFrequency() {
 	case 0:
-		return 44100 >> f.LowSamplingFrequency()
+		return 44100 >> uint(f.LowSamplingFrequency())
 	case 1:
-		return 48000 >> f.LowSamplingFrequency()
+		return 48000 >> uint(f.LowSamplingFrequency())
 	case 2:
-		return 32000 >> f.LowSamplingFrequency()
+		return 32000 >> uint(f.LowSamplingFrequency())
 	}
 	panic("not reached")
 }
@@ -126,7 +126,7 @@ func (f FrameHeader) BytesPerFrame() int {
 }
 
 func (f FrameHeader) Granules() int {
-	return consts.GranulesMpeg1 >> f.LowSamplingFrequency() // MPEG2 uses only 1 granule
+	return consts.GranulesMpeg1 >> uint(f.LowSamplingFrequency()) // MPEG2 uses only 1 granule
 }
 
 // IsValid returns a boolean value indicating whether the header is valid or not.
@@ -188,7 +188,7 @@ func (f FrameHeader) Bitrate() int {
 func (f FrameHeader) FrameSize() int {
 	return ((144*f.Bitrate())/
 		f.SamplingFrequencyValue() +
-		int(f.PaddingBit())) >> f.LowSamplingFrequency()
+		int(f.PaddingBit())) >> uint(f.LowSamplingFrequency())
 }
 
 func (f FrameHeader) SideInfoSize() int {
