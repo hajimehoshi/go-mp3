@@ -15,6 +15,7 @@
 package frameheader
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -49,16 +50,16 @@ func (f FrameHeader) SamplingFrequency() consts.SamplingFrequency {
 	return consts.SamplingFrequency(int(f&0x00000c00) >> 10)
 }
 
-func (f FrameHeader) SamplingFrequencyValue() int {
+func (f FrameHeader) SamplingFrequencyValue() (int, error) {
 	switch f.SamplingFrequency() {
 	case 0:
-		return 44100 >> uint(f.LowSamplingFrequency())
+		return 44100 >> uint(f.LowSamplingFrequency()), nil
 	case 1:
-		return 48000 >> uint(f.LowSamplingFrequency())
+		return 48000 >> uint(f.LowSamplingFrequency()), nil
 	case 2:
-		return 32000 >> uint(f.LowSamplingFrequency())
+		return 32000 >> uint(f.LowSamplingFrequency()), nil
 	}
-	panic("not reached")
+	return 0, errors.New("mp3: frame header has invalid sample frequency")
 }
 
 // PaddingBit returns the padding bit stored in position 9
@@ -185,10 +186,14 @@ func (f FrameHeader) Bitrate() int {
 	return bitrates[f.LowSamplingFrequency()][f.Layer()-1][f.BitrateIndex()]
 }
 
-func (f FrameHeader) FrameSize() int {
-	return ((144*f.Bitrate())/
-		f.SamplingFrequencyValue() +
+func (f FrameHeader) FrameSize() (int, error) {
+	freq, err := f.SamplingFrequencyValue()
+	if err != nil {
+		return 0, err
+	}
+	size := ((144*f.Bitrate())/freq +
 		int(f.PaddingBit())) >> uint(f.LowSamplingFrequency())
+	return size, nil
 }
 
 func (f FrameHeader) SideInfoSize() int {
