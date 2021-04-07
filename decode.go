@@ -89,7 +89,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		npos = d.Length() + offset
 	default:
-		return 0, errors.New("mp3.Decoder.Seek: invalid whence")
+		return 0, errors.New("mp3: invalid whence")
 	}
 	d.pos = npos
 	d.buf = nil
