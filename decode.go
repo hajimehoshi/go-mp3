@@ -69,7 +69,7 @@ func (d *Decoder) Read(buf []byte) (int, error) {
 
 // Seek is io.Seeker's Seek.
 //
-// Seek panics when the underlying source is not io.Seeker.
+// Seek returns an error when the underlying source is not io.Seeker.
 //
 // Note that seek uses a byte offset but samples are aligned to 4 bytes (2
 // channels, 2 bytes each). Be careful to seek to an offset that is divisible by
