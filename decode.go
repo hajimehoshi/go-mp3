@@ -70,7 +70,16 @@ func (d *Decoder) Read(buf []byte) (int, error) {
 // Seek is io.Seeker's Seek.
 //
 // Seek panics when the underlying source is not io.Seeker.
+//
+// Note that seek uses a byte offset but samples are aligned to 4 bytes (2
+// channels, 2 bytes each). Be careful to seek to an offset that is divisible by
+// 4 if you want to read at full sample boundaries.
 func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
+	if offset == 0 && whence == io.SeekCurrent {
+		// Handle the special case of asking for the current position specially.
+		return d.pos, nil
+	}
+
 	npos := int64(0)
 	switch whence {
 	case io.SeekStart:
