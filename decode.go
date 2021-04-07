@@ -15,7 +15,7 @@
 package mp3
 
 import (
-	"fmt"
+	"errors"
 	"io"
 
 	"github.com/hajimehoshi/go-mp3/internal/consts"
@@ -89,7 +89,7 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		npos = d.Length() + offset
 	default:
-		panic(fmt.Sprintf("mp3: invalid whence: %v", whence))
+		return 0, errors.New("mp3.Decoder.Seek: invalid whence")
 	}
 	d.pos = npos
 	d.buf = nil
