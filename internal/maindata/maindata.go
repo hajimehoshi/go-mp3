@@ -81,7 +81,10 @@ func initSlen() {
 func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*MainData, *bits.Bits, error) {
 	nch := header.NumberOfChannels()
 	// Calculate header audio data size
-	framesize := header.FrameSize()
+	framesize, err := header.FrameSize()
+	if err != nil {
+		return nil, nil, err
+	}
 	if framesize > 2000 {
 		return nil, nil, fmt.Errorf("mp3: framesize = %d", framesize)
 	}
