@@ -166,7 +166,11 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 		d.bytesPerFrame = int64(h.BytesPerFrame())
 		l += d.bytesPerFrame
 
-		buf := make([]byte, h.FrameSize()-4)
+		framesize, err := h.FrameSize()
+		if err != nil {
+			return err
+		}
+		buf := make([]byte, framesize-4)
 		if _, err := d.source.ReadFull(buf); err != nil {
 			if err == io.EOF {
 				break
@@ -213,7 +217,11 @@ func NewDecoder(r io.Reader) (*Decoder, error) {
 	if err := d.readFrame(); err != nil {
 		return nil, err
 	}
-	d.sampleRate = d.frame.SamplingFrequency()
+	freq, err := d.frame.SamplingFrequency()
+	if err != nil {
+		return nil, err
+	}
+	d.sampleRate = freq
 
 	if err := d.ensureFrameStartsAndLength(); err != nil {
 		return nil, err
