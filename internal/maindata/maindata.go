@@ -48,9 +48,9 @@ var scalefacSizesMpeg2 = [3][6][4]int{
 	{{6, 9, 9, 9}, {6, 9, 12, 6}, {15, 18, 0, 0},
 		{6, 15, 12, 0}, {6, 12, 9, 6}, {6, 18, 9, 0}}}
 
-var nSlen2 [512]int /* MPEG 2.0 slen for 'normal' mode */
+var nSlen2 = initSlen() /* MPEG 2.0 slen for 'normal' mode */
 
-func initSlen() {
+func initSlen() (nSlen2 [512]int) {
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 3; j++ {
 			n := j + i*3
@@ -76,6 +76,7 @@ func initSlen() {
 			}
 		}
 	}
+	return
 }
 
 func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*MainData, *bits.Bits, error) {
@@ -115,10 +116,6 @@ func Read(source FullReader, prev *bits.Bits, header frameheader.FrameHeader, si
 func getScaleFactorsMpeg2(m *bits.Bits, header frameheader.FrameHeader, sideInfo *sideinfo.SideInfo) (*MainData, *bits.Bits, error) {
 
 	nch := header.NumberOfChannels()
-
-	if nSlen2[1] == 0 {
-		initSlen()
-	}
 
 	md := &MainData{}
 
