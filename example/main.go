@@ -18,11 +18,11 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
+	"time"
 
-	"github.com/hajimehoshi/oto"
+	"github.com/hajimehoshi/oto/v2"
 
 	"github.com/hajimehoshi/go-mp3"
 )
@@ -39,20 +39,24 @@ func run() error {
 		return err
 	}
 
-	c, err := oto.NewContext(d.SampleRate(), 2, 2, 8192)
+	c, ready, err := oto.NewContext(d.SampleRate(), 2, 2)
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	<-ready
 
-	p := c.NewPlayer()
+	p := c.NewPlayer(d)
 	defer p.Close()
+	p.Play()
 
 	fmt.Printf("Length: %d[bytes]\n", d.Length())
-
-	if _, err := io.Copy(p, d); err != nil {
-		return err
+	for {
+		time.Sleep(time.Second)
+		if !p.IsPlaying() {
+			break
+		}
 	}
+
 	return nil
 }
 
