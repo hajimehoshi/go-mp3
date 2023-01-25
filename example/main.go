@@ -26,7 +26,13 @@ import (
 )
 
 func run() error {
-	f, err := os.Open("classic.mp3")
+	fp := "classic.mp3"
+	if len(os.Args) > 1 {
+		if nfp := os.Args[1]; nfp != "" {
+			fp = nfp
+		}
+	}
+	f, err := os.Open(fp)
 	if err != nil {
 		return err
 	}
@@ -48,13 +54,16 @@ func run() error {
 	p.Play()
 
 	fmt.Printf("Length: %d[bytes]\n", d.Length())
+	fmt.Printf("Duration: %v\n", d.Duration().Round(time.Second))
 	for {
 		time.Sleep(time.Second)
 		if !p.IsPlaying() {
 			break
 		}
+		fmt.Printf("\rElapsed time: %v", d.ElapsedTime().Round(time.Second))
 	}
 
+	fmt.Println()
 	return nil
 }
 

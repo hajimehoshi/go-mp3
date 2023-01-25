@@ -122,12 +122,16 @@ func (f FrameHeader) LowSamplingFrequency() int {
 	return 1
 }
 
-func (f FrameHeader) BytesPerFrame() int {
-	return consts.SamplesPerGr * f.Granules() * 4
-}
-
 func (f FrameHeader) Granules() int {
 	return consts.GranulesMpeg1 >> uint(f.LowSamplingFrequency()) // MPEG2 uses only 1 granule
+}
+
+func (f FrameHeader) SamplesPerFrame() int {
+	return consts.SamplesPerGr * f.Granules()
+}
+
+func (f FrameHeader) BytesPerFrame() int {
+	return f.SamplesPerFrame() * 4
 }
 
 // IsValid returns a boolean value indicating whether the header is valid or not.

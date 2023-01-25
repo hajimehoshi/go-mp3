@@ -17,6 +17,7 @@ package mp3
 import (
 	"errors"
 	"io"
+	"time"
 
 	"github.com/hajimehoshi/go-mp3/internal/consts"
 	"github.com/hajimehoshi/go-mp3/internal/frame"
@@ -27,14 +28,17 @@ import (
 //
 // Decoder decodes its underlying source on the fly.
 type Decoder struct {
-	source        *source
-	sampleRate    int
-	length        int64
-	frameStarts   []int64
-	buf           []byte
-	frame         *frame.Frame
-	pos           int64
-	bytesPerFrame int64
+	source          *source
+	sampleRate      int
+	length          int64
+	frameStarts     []int64
+	buf             []byte
+	frame           *frame.Frame
+	pos             int64
+	bytesPerFrame   int64
+	samplesPerFrame int64
+	numberOfFrames  int64
+	framesRead      int64
 }
 
 func (d *Decoder) readFrame() error {
@@ -51,6 +55,7 @@ func (d *Decoder) readFrame() error {
 		return err
 	}
 	d.buf = append(d.buf, d.frame.Decode()...)
+	d.framesRead++
 	return nil
 }
 
@@ -165,6 +170,8 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 		d.frameStarts = append(d.frameStarts, pos)
 		d.bytesPerFrame = int64(h.BytesPerFrame())
 		l += d.bytesPerFrame
+		d.numberOfFrames++
+		d.samplesPerFrame = int64(h.SamplesPerFrame())
 
 		framesize, err := h.FrameSize()
 		if err != nil {
@@ -187,6 +194,23 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 }
 
 const invalidLength = -1
+
+func (d *Decoder) frameDuration() time.Duration {
+	sps := float64(time.Second) / float64(d.sampleRate)
+	return time.Duration(float64(d.samplesPerFrame) * sps)
+}
+
+// Duration returns the total duration of the mp3 file.
+// Source of knowledge: https://www.unwoundstack.com/blog/mp3-duration.html
+func (d *Decoder) Duration() time.Duration {
+	return d.frameDuration() * time.Duration(d.numberOfFrames)
+}
+
+// ElapsedTime returns the time consisting of the sum of frame
+// durations that have been read by the decoder so far.
+func (d *Decoder) ElapsedTime() time.Duration {
+	return d.frameDuration() * time.Duration(d.framesRead)
+}
 
 // Length returns the total size in bytes.
 //
